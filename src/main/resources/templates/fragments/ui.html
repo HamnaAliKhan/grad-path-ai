@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+
+<!--/* Brand mark. */-->
+<svg th:fragment="logo(size)" th:attr="width=${size},height=${size}" viewBox="0 0 40 40" aria-hidden="true"
+     xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="gpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
+    <rect width="40" height="40" rx="11" fill="url(#gpg)"/>
+    <path d="M20 9 L33 15 L20 21 L7 15 Z" fill="#fff"/>
+    <path d="M13 19.5v5.5c0 2 3.1 4 7 4s7-2 7-4v-5.5l-7 3.3z" fill="#fff" fill-opacity=".85"/>
+    <path d="M33 15v8" stroke="#38BDF8" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M29.5 31l3.5-3.5 3.5 3.5" stroke="#38BDF8" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<!--/* Navigation icon. */-->
+<svg th:fragment="icon(name)" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <path th:attr="d=${@ui.icon(name)}"/>
+</svg>
+
+<!--/* One-time messages after redirects, and page-level validation errors. */-->
+<div th:fragment="flash" th:remove="tag">
+    <div class="flash success" role="status" th:if="${flashSuccess != null}" th:text="${flashSuccess}">Saved.</div>
+    <div class="flash error" role="alert" th:if="${flashErrors != null and !flashErrors.isEmpty()}">
+        <b>Please check the following:</b>
+        <ul><li th:each="e : ${flashErrors}" th:text="${e}">Error</li></ul>
+    </div>
+    <div class="flash error" role="alert" th:if="${formErrors != null and !formErrors.isEmpty()}">
+        <b>Please fix the following before saving:</b>
+        <ul><li th:each="e : ${formErrors}" th:text="${e}">Error</li></ul>
+    </div>
+</div>
+
+<!--/* Labelled progress bar. */-->
+<div th:fragment="progress(pct, label, variant)" th:remove="tag">
+    <div class="row" th:if="${label != null}"><span class="muted" th:text="${label}">Label</span>
+        <b class="small" th:text="${@ui.clampPct(pct) + '%'}">50%</b></div>
+    <div class="bar" th:classappend="${variant}" role="progressbar" th:attr="aria-valuenow=${@ui.clampPct(pct)},aria-label=${label}"
+         aria-valuemin="0" aria-valuemax="100">
+        <div th:style="'width:' + ${@ui.clampPct(pct)} + '%'"></div>
+    </div>
+</div>
+
+<!--/* Metric card. */-->
+<div th:fragment="metric(label, value, hint)" class="card metric">
+    <div class="l" th:text="${label}">Label</div>
+    <div class="v" th:text="${value}">0</div>
+    <div class="h" th:if="${hint != null and hint != ''}" th:text="${hint}">hint</div>
+</div>
+
+<!--/* Empty state. */-->
+<div th:fragment="empty(title, message)" class="empty">
+    <b th:text="${title}">Nothing here</b><span th:text="${message}">Message</span>
+</div>
+
+<!--/* Badge list or placeholder. */-->
+<span th:fragment="badges(items, kind)" th:remove="tag">
+    <span th:each="i : ${items}" class="badge" th:classappend="'b-' + ${kind}" th:text="${i}">Skill</span>
+    <span class="muted" th:if="${items == null or items.isEmpty()}">None yet</span>
+</span>
+
+<!--/* Readiness disclaimer. */-->
+<p th:fragment="disclaimer" class="disclaimer" th:text="${disclaimer}">This score is informational.</p>
+
+<!--/* Plotly chart container (spec rendered server-side, JSON escaped in the attribute). */-->
+<div th:fragment="chart(spec, label)" class="card">
+    <div class="chart" role="img" th:attr="data-chart=${@ui.json(spec)},aria-label=${label}"></div>
+</div>
+
+</body>
+</html>

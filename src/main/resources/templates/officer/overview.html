@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Career Office overview - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head row">
+    <div><div class="title">Career Office overview</div>
+        <div class="sub">Employability snapshot calculated from the student records in the database.</div></div>
+    <form method="get" th:action="@{/officer}">
+        <label for="ov-demo">Records</label>
+        <select id="ov-demo" name="demo" data-autosubmit>
+            <option value="true" th:selected="${includeDemo}">Registered + fictional demo</option>
+            <option value="false" th:selected="${!includeDemo}">Registered students only</option>
+        </select>
+    </form>
+</div>
+
+<div th:if="${snapshot.isEmpty()}">
+    <div th:replace="~{fragments/ui :: empty('No student records yet', 'Records appear here once students complete their profiles (or demo data is enabled).')}"></div>
+</div>
+
+<div th:unless="${snapshot.isEmpty()}">
+    <p class="muted" th:text="${rows.size()} + ' student record(s): ' + ${snapshot.demoCount()} + ' fictional demo, ' + ${rows.size() - snapshot.demoCount()} + ' registered. Scores come from the 60-rule readiness engine.'">records</p>
+    <div class="grid g4">
+        <div th:replace="~{fragments/ui :: metric('Student records', ${rows.size()}, ${snapshot.demoCount() + ' demo (fictional)'})}"></div>
+        <div th:replace="~{fragments/ui :: metric('Average CGPA', ${@ui.two(avgCgpa)}, '4.0-equivalent')}"></div>
+        <div th:replace="~{fragments/ui :: metric('Job Ready students', ${categoryCounts.get('Job Ready')}, ${@ui.clampPct(100.0 * categoryCounts.get('Job Ready') / rows.size()) + '% of records'})}"></div>
+        <div th:replace="~{fragments/ui :: metric('With internship experience', ${withInternship}, ${@ui.clampPct(100.0 * withInternship / rows.size()) + '% of records'})}"></div>
+    </div>
+</div>
+<div class="grid g4">
+    <div th:replace="~{fragments/ui :: metric('Open jobs', ${openJobs}, ${totalJobs + ' listings in total'})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Applications received', ${totalApplications}, 'All listings')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Awaiting review', ${awaiting}, 'Status: Submitted')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Unread messages', ${unreadCount}, 'From students')}"></div>
+</div>
+
+<div th:unless="${snapshot.isEmpty()}">
+    <p>
+        <span th:each="e : ${categoryCounts}" class="badge" th:classappend="'b-' + ${@ui.categoryKind(e.key)}"
+              th:text="${e.key + ': ' + e.value}">cat</span>
+        <span class="badge b-neutral" th:text="'Average readiness score: ' + ${@ui.one(avgScore)}">avg</span>
+    </p>
+    <div class="grid g2">
+        <div><div th:replace="~{fragments/ui :: chart(${donutChart}, 'Readiness category distribution')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${donutInsight}">insight</span></div></div>
+        <div><div th:replace="~{fragments/ui :: chart(${deptChart}, 'Students per department')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${deptInsight}">insight</span></div></div>
+    </div>
+</div>
+
+<div class="grid g-2-1">
+    <div>
+        <div class="section-title">Recently created profiles</div>
+        <div class="card">
+            <ul class="list" th:if="${!recentProfiles.isEmpty()}">
+                <li th:each="a : ${recentProfiles}"><b th:text="${a.actorName}">Name</b> created a profile
+                    <span class="muted">&middot; <time th:attr="datetime=${@ui.iso(a.createdAt)}" th:text="${@ui.time(a.createdAt)}">t</time></span>
+                    <a th:if="${a.userId != null}" class="small" th:href="@{/officer/students/{id}(id=${a.userId})}">View</a></li>
+            </ul>
+            <p th:if="${recentProfiles.isEmpty()}">No new profiles yet.</p>
+        </div>
+    </div>
+    <div>
+        <div class="section-title">Quick links</div>
+        <div class="card stack">
+            <a class="btn primary block" th:href="@{/officer/applications}">Review applications</a>
+            <a class="btn block" th:href="@{/officer/jobs/new}">Add a job listing</a>
+            <a class="btn block" th:href="@{/officer/students}">Student directory</a>
+            <a class="btn block" th:href="@{/officer/reports}">Reports &amp; analytics</a>
+            <a class="btn block" th:href="@{/messages}">Open messages</a>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>

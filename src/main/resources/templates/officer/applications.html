@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Applications - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Applications</div>
+    <div class="sub">Review applicants for each listing, ranked from best to lowest fit.</div>
+</div>
+<div th:if="${jobs.isEmpty()}">
+    <div th:replace="~{fragments/ui :: empty('No listings yet', 'Add a listing in Job Management first.')}"></div>
+</div>
+<form method="get" th:action="@{/officer/applications}" class="card" th:unless="${jobs.isEmpty()}">
+    <label for="ap-job">Listing</label>
+    <div class="row-start">
+        <select id="ap-job" name="job" data-autosubmit style="max-width:640px">
+            <option th:each="j : ${jobs}" th:value="${j.id}" th:selected="${j.id == selectedId}"
+                    th:text="${j.title + ' - ' + j.company + ' (' + counts.getOrDefault(j.id, 0L) + ' applicant(s))' + (j.demo ? ' [demo]' : '') + (j.open ? '' : ' [closed]')}">job</option>
+        </select>
+        <noscript><button class="btn" type="submit">Show</button></noscript>
+    </div>
+</form>
+<div class="insight"><b class="lead">How the ranking works:</b> fit score (0-100) = <b>55%</b> skill match between the
+    listing's required skills and the student's profile + <b>25%</b> required skills found in their resume + <b>20%</b>
+    readiness category points (Job Ready 100, Developing 60, Needs Improvement 25). Strong fit 75+, Good 55-74, Partial 35-54,
+    Low below 35. It is a screening aid to prioritise review - never a hiring decision. Always read the full application.</div>
+
+<div th:if="${job != null}">
+    <div th:if="${applications.isEmpty()}">
+        <div th:replace="~{fragments/ui :: empty('No applications yet', 'When students apply to this listing they appear here, best fit first.')}"></div>
+    </div>
+    <div th:unless="${applications.isEmpty()}">
+        <div class="grid g3">
+            <div th:replace="~{fragments/ui :: metric('Applicants', ${applications.size()}, '')}"></div>
+            <div th:replace="~{fragments/ui :: metric('Strong fits (75+)', ${strongFits}, '')}"></div>
+            <div th:replace="~{fragments/ui :: metric('Shortlisted or later', ${positive}, 'Shortlisted, Interview, Offer')}"></div>
+        </div>
+        <p><a class="btn small" th:href="@{/officer/applications/export(job=${job.id})}">Download ranked list (CSV, no contact details)</a></p>
+        <div class="card" th:each="a, st : ${applications}" th:with="s=${a.student}, fit=${@ui.fit(a.fitScore)}">
+            <div class="row">
+                <div><b th:text="'#' + ${st.count} + '  ' + ${s.name}">#1 Name</b>
+                    <div class="muted"><span th:text="${s.department}">CS</span> &middot;
+                        CGPA <span th:text="${@ui.two(s.cgpa) + '/' + @ui.scale(s.cgpaScale)}">3.3</span> &middot; applied
+                        <time th:attr="datetime=${@ui.iso(a.createdAt)}" th:text="${@ui.time(a.createdAt)}">t</time></div></div>
+                <div class="center"><b style="font-size:1.4rem" th:text="${a.fitScore}">80</b><span class="muted">/100</span></div>
+            </div>
+            <div class="mt-s">
+                <span class="badge" th:classappend="'b-' + ${fit.badge()}" th:text="${fit.label()}">Strong fit</span>
+                <span class="badge" th:classappend="'b-' + ${@ui.statusKind(a.status)}" th:text="${a.status}">Submitted</span>
+                <span class="badge" th:classappend="'b-' + ${@ui.categoryKind(a.readinessCategory)}" th:text="${a.readinessCategory}">c</span>
+                <span class="badge b-neutral" th:text="'Skills ' + ${a.skillMatch} + '%'">s</span>
+                <span class="badge b-neutral" th:text="'Resume ' + ${a.resumeMatch} + '%'">r</span>
+                <span class="badge b-neutral" th:if="${s.demo}">Demo record (fictional)</span>
+            </div>
+            <p class="mt-s"><a class="btn primary small" th:href="@{/officer/applications/{id}(id=${a.id})}">Review application</a></p>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>

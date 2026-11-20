@@ -1,0 +1,50 @@
+@startuml 06_sequence
+title GradPath AI - Sequence Diagram: apply for a job
+autonumber
+skinparam sequenceParticipant underline false
+
+actor Student
+participant "Browser" as B
+participant "SessionTokenFilter\n+ CsrfFilter" as F
+participant "JobBoardController" as C
+participant "ApplicationService" as A
+participant "ResumeService" as R
+participant "SkillGapService" as G
+participant "ReadinessService" as RS
+participant "ReadinessRuleEngine" as E
+participant "ApplicationRepository" as AR
+participant "ActivityService" as ACT
+database "Neon PostgreSQL" as DB
+
+Student -> B : submit application form + PDF
+B -> F : POST /student/jobs/{id}/apply (multipart, _csrf)
+F -> F : verify CSRF token, resolve GP_SESSION\n(hashed token -> user), check ROLE_STUDENT
+F -> C : apply(me, id, form, resume)
+C -> A : apply(student, jobId, form, pdfBytes, filename)
+A -> AR : find(jobId, studentId)
+AR -> DB : SELECT
+alt job closed or already applied
+  A --> C : Result.fail(message)
+  C --> B : redirect with error
+else
+  A -> R : extractText(pdfBytes)
+  R --> A : Result<text> (PDFBox, never executed)
+  A -> G : matchJob(student, jobSkills)
+  G --> A : skillMatch %
+  A -> R : skillCoverage(text, jobSkills)
+  R --> A : resumeMatch %
+  A -> RS : evaluate(student)
+  RS -> E : evaluate(ProfileSnapshot)
+  E --> RS : ReadinessResult (score, category)
+  RS --> A : result
+  A -> A : FitCalculator.fit(0.55, 0.25, 0.20)
+  A -> AR : saveAndFlush(application)
+  AR -> DB : INSERT job_applications
+  A -> AR : storeResumePdf(id, bytes)
+  A -> ACT : record("Applied for a job")
+  ACT -> DB : INSERT activity_log (via ActivityEvent observer)
+  A --> C : Result.ok(application)
+  C --> B : redirect /student/applications (flash success)
+end
+B --> Student : tracker shows "Submitted" and fit details
+@enduml

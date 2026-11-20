@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Skill-gap analysis - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Skill-gap analysis</div>
+    <div class="sub">Compare your skills with an example career path and see what to learn next.</div>
+</div>
+<form method="get" th:action="@{/student/skill-gap}" class="card">
+    <label for="sg-career">Career path</label>
+    <div class="row-start">
+        <select id="sg-career" name="career" data-autosubmit style="max-width:360px">
+            <option th:each="c : ${careers}" th:value="${c}" th:text="${c}" th:selected="${c == career}">Career</option>
+        </select>
+        <noscript><button class="btn" type="submit">Show</button></noscript>
+    </div>
+    <p class="muted small mt-s" th:text="${catalogDisclaimer}">disclaimer</p>
+</form>
+
+<div class="grid g4">
+    <div th:replace="~{fragments/ui :: metric('Skill match', ${gap.match() + '%'}, ${career})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Matched', ${gap.counts().get('Matched')}, 'You are confident in these')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Learning', ${gap.counts().get('Learning')}, 'Count as half')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Missing', ${gap.counts().get('Missing')}, 'Not on your profile yet')}"></div>
+</div>
+<div class="card">
+    <div th:replace="~{fragments/ui :: progress(${gap.match()}, ${'Match with ' + career}, ${gap.match() >= 70 ? 'green' : ''})}"></div>
+</div>
+<div class="insight"><b class="lead">How the match is calculated:</b>
+    <span th:text="'Your skill match with ' + ${career} + ' is ' + ${gap.match()} + '%.'">match</span>
+    Skills you are confident in count fully, skills you are still learning count half and missing skills count zero;
+    high-importance skills weigh 3, medium 2 and low 1. Close the high-importance gaps first for the biggest jump.</div>
+
+<div class="tablewrap">
+    <table class="table">
+        <tr><th>Skill</th><th>Your status</th><th>Importance</th><th>Learning tip</th></tr>
+        <tr th:each="r : ${gap.rows()}">
+            <td><b th:text="${r.skill()}">Skill</b></td>
+            <td><span class="badge" th:classappend="'b-' + ${@ui.skillKind(r.status())}" th:text="${r.status()}">Missing</span></td>
+            <td th:text="${r.importanceLabel()}">High</td>
+            <td class="muted" th:text="${r.tip()}">tip</td>
+        </tr>
+    </table>
+</div>
+
+<div class="grid g2">
+    <div class="card">
+        <h4>Learning priorities</h4>
+        <ul class="list" th:if="${!gap.priorities().isEmpty()}">
+            <li th:each="r : ${gap.priorities()}"><b th:text="${r.skill()}">SQL</b>
+                <span class="muted" th:text="'(' + ${r.status().toLowerCase()} + ', ' + ${r.importanceLabel().toLowerCase()} + ' importance) - ' + ${r.tip()}">detail</span></li>
+        </ul>
+        <p th:if="${gap.priorities().isEmpty()}">You cover every listed skill. Deepen them with projects.</p>
+    </div>
+    <div class="card">
+        <h4>Suggested portfolio projects</h4>
+        <ul class="list"><li th:each="p : ${gap.career().projects()}" th:text="${p}">project</li></ul>
+        <a class="btn small mt-s" th:href="@{/student/careers/{s}(s=${gap.career().slug()})}">Career details</a>
+    </div>
+</div>
+</div>
+</body>
+</html>

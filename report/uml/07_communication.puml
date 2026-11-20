@@ -1,0 +1,34 @@
+@startuml 07_communication
+!pragma layout smetana
+title GradPath AI - Communication Diagram: viewing Placement Readiness
+skinparam object {
+  BackgroundColor #F8FAFF
+  BorderColor #6366F1
+}
+left to right direction
+
+object ":Student (actor)" as S
+object ":ReadinessController" as C
+object ":ReadinessService" as RS
+object ":ReadinessRuleEngine" as E
+object ":CgpaScorer ... :ExtracurricularScorer\n(7 FactorScorers)" as F
+object ":ReadinessAssessmentRepository" as H
+object ":RecommendationService" as REC
+object ":ChartFactory" as CF
+object ":PlacementModelService" as PMS
+object ":PlacementModel" as PM
+
+S --> C : "1: GET /student/readiness"
+C --> RS : "2: record(student)"
+RS --> E : "2.1: evaluate(snapshot)"
+E --> F : "2.1.1: score(snapshot) x7"
+E --> E : "2.1.2: apply rules 59 and 60"
+RS --> H : "2.2: save() if score changed"
+C --> REC : "3: levers(student) / nextSteps(result)"
+REC --> RS : "3.1: evaluate(changed snapshot) per scenario"
+C --> RS : "4: history(studentId)"
+C --> PMS : "5: estimate(student)"
+PMS --> PM : "5.1: probability(features), contributions(features)"
+C --> CF : "6: gauge(), factorBars(), history(), contributions()"
+C --> S : "7: render readiness.html"
+@enduml

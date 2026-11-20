@@ -1,0 +1,31 @@
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+*.secrets.toml
+.streamlit/
+
+# Build output
+target/
+*.class
+
+# Local H2 development database
+*.mv.db
+*.trace.db
+data/local/
+
+# Uploaded or generated files
+uploads/
+
+# Optional Kaggle dataset (check its licence before committing)
+data/kaggle/*.csv
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Report build artefacts
+report/build/

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Student profile - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<p><a th:href="@{/officer/students}">&larr; Student directory</a></p>
+<div class="page-head row">
+    <div class="row-start"><div class="avatar" th:text="${@ui.initials(student.name)}">AM</div>
+        <div><div class="title" th:text="${student.name}">Name</div>
+            <div class="sub"><span th:text="${student.degree + ' ' + student.department}">BS CS</span> &middot;
+                <span th:text="${student.university}">uni</span> &middot; graduating <span th:text="${student.graduationYear}">2027</span></div></div></div>
+    <a class="btn primary" th:if="${canMessage}" th:href="@{/messages/{id}(id=${student.id})}">Message student</a>
+</div>
+<div class="notice" th:if="${student.demo}">This is a fictional demonstration record, not a real student.</div>
+
+<div class="grid g4">
+    <div th:replace="~{fragments/ui :: metric('Readiness score', ${result.scoreLabel() + ' / 100'}, ${result.category().label() + (result.preliminary() ? ' (preliminary)' : '')})}"></div>
+    <div th:replace="~{fragments/ui :: metric('CGPA', ${@ui.two(student.cgpa)}, ${'Out of ' + @ui.scale(student.cgpaScale)})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Projects / internships', ${student.projects + ' / ' + student.internships}, ${student.workExperienceMonths + ' months work'})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Skill match', ${gap.match() + '%'}, ${gap.career().name()})}"></div>
+</div>
+<div class="notice info" th:if="${estimate != null}"><b>Model placement estimate (secondary):</b>
+    <span th:text="${estimate.percentLabel() + ' - ' + estimate.band()}">58%</span>
+    <span class="muted" th:text="${'(logistic regression ' + estimate.modelVersion() + (estimate.synthetic() ? ', practice model trained on synthetic data' : '') + '). The rule-based score above remains the official measure.'}">note</span>
+    <a th:href="@{/model}">About the model</a>
+</div>
+
+<div class="grid g2">
+    <div class="card">
+        <h4>Readiness breakdown</h4>
+        <div class="tablewrap"><table class="table">
+            <tr><th>Factor</th><th>Points</th><th>Rule</th></tr>
+            <tr th:each="f : ${result.factors()}"><td th:text="${f.name()}">f</td>
+                <td th:text="${@ui.points(f.points()) + ' / ' + @ui.points(f.maxPoints())}">p</td>
+                <td class="muted" th:text="${f.rulesLabel()}">r</td></tr>
+        </table></div>
+        <p class="small" th:text="'Score = ' + ${result.calculation()}">calc</p>
+        <p class="small muted" th:if="${result.preliminary()}"
+           th:text="'Preliminary: missing ' + ${#strings.listJoin(result.missingInformation(), ', ')}">prelim</p>
+    </div>
+    <div class="card">
+        <h4>Skills</h4>
+        <p><b>Confident</b></p><div th:replace="~{fragments/ui :: badges(${student.skillList()}, 'violet')}"></div>
+        <p class="mt-s"><b>Learning</b></p><div th:replace="~{fragments/ui :: badges(${student.learningList()}, 'warn')}"></div>
+        <p class="mt-s"><b>Certifications</b></p><div th:replace="~{fragments/ui :: badges(${student.certList()}, 'info')}"></div>
+        <p class="mt-s"><b th:text="'Gaps for ' + ${gap.career().name()}">Gaps</b></p>
+        <span th:each="r : ${gap.priorities()}" class="badge" th:classappend="'b-' + ${@ui.skillKind(r.status())}" th:text="${r.skill()}">s</span>
+        <span class="muted" th:if="${gap.priorities().isEmpty()}">None</span>
+        <p class="mt-s"><b>Communication / extracurricular</b>
+            <span th:text="${student.communication + '/10 and ' + student.extracurricular + '/10'}">7/10</span></p>
+    </div>
+</div>
+
+<div class="card">
+    <h4>Contact details</h4>
+    <div th:if="${sharedContact}">
+        <dl class="facts">
+            <div><dt>Email</dt><dd th:text="${student.email}">e</dd></div>
+            <div><dt>Phone (from latest application)</dt><dd th:text="${applications[0].phone}">p</dd></div>
+            <div><dt>City</dt><dd th:text="${student.city}">c</dd></div>
+        </dl>
+        <p class="muted small mt-s">Shown because the student shared them with the Career Office in a job application.</p>
+    </div>
+    <p th:unless="${sharedContact}" class="muted">Contact details are shared only when the student applies for a job.
+        Use in-app messaging to reach them.</p>
+</div>
+
+<div class="section-title">Applications</div>
+<div class="tablewrap" th:if="${!applications.isEmpty()}">
+    <table class="table">
+        <tr><th>Job</th><th>Fit</th><th>Status</th><th>Applied</th><th></th></tr>
+        <tr th:each="a : ${applications}">
+            <td th:text="${a.job.title + ' - ' + a.job.company}">job</td>
+            <td><span class="badge" th:classappend="'b-' + ${@ui.fit(a.fitScore).badge()}" th:text="${a.fitScore + ' ' + @ui.fit(a.fitScore).label()}">fit</span></td>
+            <td><span class="badge" th:classappend="'b-' + ${@ui.statusKind(a.status)}" th:text="${a.status}">s</span></td>
+            <td><time th:attr="datetime=${@ui.iso(a.createdAt)}" th:text="${@ui.time(a.createdAt)}">t</time></td>
+            <td><a class="btn small" th:href="@{/officer/applications/{id}(id=${a.id})}">Review</a></td>
+        </tr>
+    </table>
+</div>
+<p class="muted" th:if="${applications.isEmpty()}">No applications yet.</p>
+<p th:replace="~{fragments/ui :: disclaimer}"></p>
+</div>
+</body>
+</html>

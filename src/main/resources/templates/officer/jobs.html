@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Job management - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head row">
+    <div><div class="title">Job management</div>
+        <div class="sub">Add, edit, close and remove listings. Open listings appear instantly for every student.</div></div>
+    <a class="btn primary" th:href="@{/officer/jobs/new}">Add listing</a>
+</div>
+<form method="get" th:action="@{/officer/jobs}" class="card" role="search">
+    <div class="grid g4" style="align-items:end">
+        <div><label for="jm-q">Search listings</label><input id="jm-q" type="search" name="q" maxlength="80" th:value="${q}"></div>
+        <div><label for="jm-c">Category</label>
+            <select id="jm-c" name="category" data-autosubmit><option value="All">All</option>
+                <option th:each="c : ${categories}" th:value="${c}" th:text="${c}" th:selected="${c == category}">c</option></select></div>
+        <div><label for="jm-l">Level</label>
+            <select id="jm-l" name="level" data-autosubmit><option value="All">All</option>
+                <option th:each="l : ${levels}" th:value="${l}" th:text="${l}" th:selected="${l == level}">l</option></select></div>
+        <div><label for="jm-o">Owner</label>
+            <select id="jm-o" name="owner" data-autosubmit>
+                <option value="all" th:selected="${owner == 'all'}">All listings</option>
+                <option value="mine" th:selected="${owner == 'mine'}">Only my listings</option></select></div>
+    </div>
+</form>
+<p class="muted" th:text="${jobs.size()} + ' listing(s). You can change only listings created by your account; demo listings are read-only.'">n</p>
+<div th:if="${jobs.isEmpty()}">
+    <div th:replace="~{fragments/ui :: empty('No listings found', 'Adjust your filters or add a new listing.')}"></div>
+</div>
+<div class="card" th:each="j : ${jobs}" th:with="mine=${j.isManageableBy(meId)}">
+    <div class="row">
+        <b th:text="${j.title}">Title</b>
+        <span>
+            <span class="badge" th:classappend="${j.open} ? 'b-success' : 'b-danger'" th:text="${j.open ? 'Open' : 'Closed'}">Open</span>
+            <span class="badge b-neutral" th:if="${j.demo}">Demo seed (read-only)</span>
+            <span class="badge b-violet" th:if="${mine}">Your listing</span>
+            <span class="badge b-info" th:if="${!j.demo and !mine}">Another officer's listing</span>
+        </span>
+    </div>
+    <p><span th:text="${j.company}">Company</span> &middot; <span th:text="${j.level}">Level</span> &middot;
+        <span th:text="${j.category}">Category</span> &middot; <span th:text="${j.location}">Location</span> &middot;
+        <a th:href="@{/officer/applications(job=${j.id})}" th:text="${counts.getOrDefault(j.id, 0L)} + ' applicant(s)'">0</a></p>
+    <span th:each="s : ${j.skillList()}" class="badge b-neutral" th:text="${s}">skill</span>
+    <div class="row-start mt-s" th:if="${mine}">
+        <a class="btn small" th:href="@{/officer/jobs/{id}/edit(id=${j.id})}">Edit</a>
+        <form th:action="@{/officer/jobs/{id}/toggle(id=${j.id})}" method="post" class="inline">
+            <button type="submit" class="btn small" th:text="${j.open ? 'Close listing' : 'Reopen listing'}">Close</button></form>
+        <form th:action="@{/officer/jobs/{id}/delete(id=${j.id})}" method="post" class="inline"
+              th:attr="data-confirm=${'Delete “' + j.title + '”? Its ' + counts.getOrDefault(j.id, 0L) + ' application(s) will be deleted too. This cannot be undone.'}">
+            <button type="submit" class="btn danger small">Delete</button></form>
+    </div>
+</div>
+</div>
+</body>
+</html>

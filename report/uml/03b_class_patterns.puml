@@ -1,0 +1,178 @@
+@startuml 03b_class_patterns
+!pragma layout smetana
+title GradPath AI - Class Diagram (rule engine, placement model, assistant and design patterns)
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F8FAFF
+  BorderColor #6366F1
+}
+hide empty members
+
+package "readiness (Template Method)" {
+  class ReadinessRuleEngine <<Singleton bean>> {
+    + VERSION = "rules-1.0"
+    + evaluate(p : ProfileSnapshot) : ReadinessResult
+    + validate(p : ProfileSnapshot)
+    + rules() : List<RuleDefinition>
+  }
+  abstract class FactorScorer {
+    - key, name : String
+    - maxPoints : double
+    - tiers : List<TierRule>
+    + score(p) : FactorResult {final}
+    # {abstract} measure(p) : double
+    # {abstract} describe(p, v) : String
+    # {abstract} advice(p, points) : String
+    # adjust(p, r) : FactorResult
+  }
+  class CgpaScorer
+  class ProjectScorer
+  class ExperienceScorer {
+    # adjust(p, r) : FactorResult  // rule 58
+  }
+  class SkillScorer
+  class CertificationScorer
+  class CommunicationScorer
+  class ExtracurricularScorer
+  class TierRule <<record>> {
+  number; lower; upper; points
+  + matches(v) : boolean
+}
+  class ProfileSnapshot <<record>>
+  class ReadinessResult <<record>> {
+  score; category; preliminary
+  + strengths(); weaknesses()
+}
+  class FactorResult <<record>>
+  enum ReadinessCategory {
+  NEEDS_IMPROVEMENT
+ DEVELOPING
+ JOB_READY
+  + forScore(s)
+}
+}
+
+FactorScorer <|-- CgpaScorer
+FactorScorer <|-- ProjectScorer
+FactorScorer <|-- ExperienceScorer
+FactorScorer <|-- SkillScorer
+FactorScorer <|-- CertificationScorer
+FactorScorer <|-- CommunicationScorer
+FactorScorer <|-- ExtracurricularScorer
+ReadinessRuleEngine "1" *-- "7" FactorScorer
+FactorScorer "1" *-- "many" TierRule
+ReadinessRuleEngine ..> ProfileSnapshot
+ReadinessRuleEngine ..> ReadinessResult
+ReadinessResult "1" *-- "7" FactorResult
+ReadinessResult --> ReadinessCategory
+
+package "ml (placement model, pure Java)" {
+  class PlacementFeatures <<record>> {
+    cgpaRatio; projects; internship
+    communication; extracurricular
+    + {static} of(p : ProfileSnapshot)
+  }
+  class PlacementDataset <<record>> {
+    rows; labels; source; synthetic
+    + {static} load(csv : Path)
+    + {static} synthetic(n, seed)
+  }
+  class LogisticRegression <<utility>> {
+    + {static} train(x, y, lambda) : Fit
+    + {static} sigmoid(t) : double
+  }
+  class ModelTrainer <<utility>> {
+    + {static} train(data, seed) : PlacementModel
+    ~ bestF1Threshold(p, y) : double
+  }
+  class ModelMetrics <<record>> {
+    accuracy; precision; recall; f1
+    rocAuc; brier; tp; fp; tn; fn
+    + {static} evaluate(p, y, threshold)
+  }
+  class PlacementModel <<record>> {
+    mean; scale; weights; bias
+    threshold; lambda; synthetic
+    + probability(f) : double
+    + contributions(f) : List<Contribution>
+  }
+  class ModelStore {
+    + {static} read(file) : PlacementModel
+    + {static} write(model, file)
+  }
+  class TrainModelCommand {
+    + {static} main(args)
+  }
+}
+TrainModelCommand ..> PlacementDataset : loads
+TrainModelCommand ..> ModelTrainer
+TrainModelCommand ..> ModelStore : saves
+ModelTrainer ..> LogisticRegression
+ModelTrainer ..> ModelMetrics
+ModelTrainer ..> PlacementModel : creates
+PlacementModel "1" *-- "1" ModelMetrics : test
+PlacementModel ..> PlacementFeatures
+PlacementFeatures ..> ProfileSnapshot
+
+package "assistant (Strategy + Factory + Facade)" {
+  interface AssistantStrategy {
+    + label() : String
+    + reply(history, ctx, userId) : AssistantReply
+  }
+  class RuleBasedAssistant
+  class LlmAssistant <<Facade>> {
+    - provider, apiKey, model
+    + reply(...) : AssistantReply
+  }
+  class AssistantFactory <<Factory>> {
+    + create() : AssistantStrategy
+  }
+  class PiiRedactor {
+    + redact(text, names) : String
+  }
+  class AssistantContext <<record>>
+}
+AssistantStrategy <|.. RuleBasedAssistant
+AssistantStrategy <|.. LlmAssistant
+LlmAssistant --> RuleBasedAssistant : fallback
+AssistantFactory ..> AssistantStrategy : creates
+
+package "service" {
+  class ReadinessService <<Facade>> {
+    + evaluate(s : Student) : ReadinessResult
+    + record(s : Student) : ReadinessResult
+    + history(id) : List<ReadinessAssessment>
+  }
+  class ApplicationService {
+  + apply(...) : Result<JobApplication>
+ + computeFit(...) : Fit
+  + updateStatus(...)
+}
+  class FitCalculator {
+    + fit(skill, resume, category) : int
+  }
+  class ActivityService <<Observer>> {
+  + record(user, action, detail)
+  + onActivity(e : ActivityEvent)
+}
+  class ActivityEvent <<record>>
+  class UserFactory <<Factory>> {
+    + create(role, ...) : User
+  }
+  class CareerAssistantService
+  class PlacementModelService <<Facade, Singleton bean>> {
+    - model : PlacementModel
+    + isAvailable() : boolean
+    + estimate(s : Student) : Optional<PlacementEstimate>
+  }
+}
+PlacementModelService "1" o-- "0..1" PlacementModel
+PlacementModelService ..> ModelStore : loads at start-up
+ReadinessService --> ReadinessRuleEngine
+ApplicationService --> ReadinessService
+ApplicationService ..> FitCalculator
+ApplicationService --> ActivityService : publishes
+ActivityService ..> ActivityEvent
+CareerAssistantService --> AssistantFactory
+CareerAssistantService ..> PiiRedactor
+@enduml

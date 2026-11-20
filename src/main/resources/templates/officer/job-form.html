@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Job listing - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<p><a th:href="@{/officer/jobs}">&larr; Job management</a></p>
+<div class="page-head">
+    <div class="title" th:text="${editing == null ? 'Add a job listing' : 'Edit listing'}">Add</div>
+    <div class="sub">Fields marked * are required. Required skills drive the transparent skill match students see.</div>
+</div>
+<form class="card" method="post" novalidate
+      th:action="${editing == null} ? @{/officer/jobs/new} : @{/officer/jobs/{id}/edit(id=${editing.id})}">
+    <div class="grid g2">
+        <div class="field"><label for="jf-t">Job title <span class="req">*</span></label>
+            <input id="jf-t" type="text" name="title" maxlength="140" required th:value="${form.title}"></div>
+        <div class="field"><label for="jf-c">Company <span class="req">*</span></label>
+            <input id="jf-c" type="text" name="company" maxlength="140" required th:value="${form.company}"></div>
+    </div>
+    <div class="grid g3">
+        <div class="field"><label for="jf-cat">Career category <span class="req">*</span></label>
+            <select id="jf-cat" name="category" required><option value="">Choose a category</option>
+                <option th:each="c : ${categories}" th:value="${c}" th:text="${c}" th:selected="${c == form.category}">c</option></select></div>
+        <div class="field"><label for="jf-l">Experience level <span class="req">*</span></label>
+            <select id="jf-l" name="level" required><option value="">Choose a level</option>
+                <option th:each="l : ${levels}" th:value="${l}" th:text="${l}" th:selected="${l == form.level}">l</option></select></div>
+        <div class="field"><label for="jf-loc">Location <span class="req">*</span></label>
+            <input id="jf-loc" type="text" name="location" maxlength="120" required th:value="${form.location}"></div>
+    </div>
+    <fieldset class="field" style="border:none;padding:0;margin:0 0 .9rem">
+        <legend><label>Required skills <span class="req">*</span> <span class="hint">(1-12)</span></label></legend>
+        <div class="skill-picker">
+            <div class="group" th:each="cat : ${skillCategories}">
+                <span th:text="${cat.key}">Programming</span>
+                <label class="chip" th:each="s : ${cat.value}">
+                    <input type="checkbox" name="skills" th:value="${s}" th:checked="${form.skills.contains(s)}"><span th:text="${s}">Java</span></label>
+            </div>
+        </div>
+    </fieldset>
+    <div class="field"><label for="jf-d">Description <span class="req">*</span> <span class="hint">(20-2000 characters)</span></label>
+        <textarea id="jf-d" name="description" rows="5" maxlength="2000" required data-count="jf-d-count" th:text="${form.description}"></textarea>
+        <div class="hint" id="jf-d-count">0 / 2000</div></div>
+    <div class="row-start">
+        <button type="submit" class="btn primary" th:text="${editing == null ? 'Add listing' : 'Save changes'}" data-busy="Saving...">Save</button>
+        <a class="btn" th:href="@{/officer/jobs}">Cancel</a>
+    </div>
+</form>
+</div>
+</body>
+</html>

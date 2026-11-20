@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--/* Authenticated application layout with the role-aware sidebar. Usage:
+     <html th:replace="~{layouts/app :: layout(~{::title}, ~{::section})}"> */-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:fragment="layout(title, content)">
+<head th:replace="~{fragments/head :: head(${title})}"></head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="shell">
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+        <a class="brand" th:href="${me != null and me.isOfficer() ? '/officer' : '/student'}">
+            <span th:replace="~{fragments/ui :: logo(34)}"></span><b>GradPath <i>AI</i></b>
+        </a>
+        <div class="card flat" style="padding:.8rem 1rem;margin:0" th:if="${me != null}">
+            <div class="account">
+                <div class="avatar" th:text="${me.initials()}">AM</div>
+                <div>
+                    <b th:text="${me.name()}">Alex Morgan</b><br>
+                    <span class="badge" th:classappend="${me.isOfficer()} ? 'b-violet' : 'b-info'"
+                          th:text="${me.role().label()}">Student</span>
+                    <span class="badge b-neutral" th:if="${me.demo()}">Demo account</span>
+                </div>
+            </div>
+            <p class="mt-s" th:if="${unreadCount != null and unreadCount > 0}">
+                <a th:href="@{/messages}" class="badge b-warn"
+                   th:text="${unreadCount + ' unread message' + (unreadCount == 1 ? '' : 's')}">1 unread</a>
+            </p>
+        </div>
+        <nav class="nav" th:if="${nav != null}">
+            <a th:each="item : ${nav}" th:href="@{${item.href()}}" th:classappend="${item.active()} ? 'active'"
+               th:attr="aria-current=${item.active()} ? 'page' : null">
+                <svg th:replace="~{fragments/ui :: icon(${item.icon()})}"></svg>
+                <span th:text="${item.label()}">Overview</span>
+                <span class="count" th:if="${item.badge() > 0}" th:text="${item.badge()}">2</span>
+            </a>
+        </nav>
+        <div class="sidebar-foot">
+            <form th:action="@{/logout}" method="post"><button type="submit" class="btn block">Sign out</button></form>
+            <span class="muted small" th:text="${appName + ' v' + appVersion}">GradPath AI v2.0.0</span>
+        </div>
+    </aside>
+    <div class="main">
+        <header class="topbar">
+            <a class="brand" th:href="${me != null and me.isOfficer() ? '/officer' : '/student'}">
+                <span th:replace="~{fragments/ui :: logo(28)}"></span><b>GradPath <i>AI</i></b></a>
+            <button type="button" class="btn small" data-nav-toggle aria-controls="sidebar" aria-expanded="false">Menu
+                <span class="count" th:if="${unreadCount != null and unreadCount > 0}" th:text="${unreadCount}">1</span>
+            </button>
+        </header>
+        <main class="content" id="main">
+            <div th:replace="~{fragments/ui :: flash}"></div>
+            <th:block th:replace="${content}"></th:block>
+        </main>
+    </div>
+</div>
+</body>
+</html>

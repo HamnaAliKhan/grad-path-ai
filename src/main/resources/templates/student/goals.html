@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Career goals - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Career goals and progress</div>
+    <div class="sub">Break big ambitions into small tasks and watch your progress grow.</div>
+</div>
+<div class="grid g4">
+    <div th:replace="~{fragments/ui :: metric('Goals', ${summary.goals()}, '')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Completed tasks', ${summary.done()}, '')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Pending tasks', ${summary.pending()}, '')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Overall progress', ${summary.progress() + '%'}, 'Calculated from tasks')}"></div>
+</div>
+<div class="card">
+    <div th:replace="~{fragments/ui :: progress(${summary.progress()}, 'Overall completion', 'green')}"></div>
+    <p class="mt-s"><b>Suggested next action:</b>
+        <span th:text="${summary.next() != null ? summary.next() : 'Create a goal and add your first task.'}">next</span></p>
+</div>
+
+<details class="card" th:attr="open=${goals.isEmpty() or newTitle != null} ? 'open' : null">
+    <summary>Create a new goal</summary>
+    <form th:action="@{/student/goals}" method="post">
+        <div class="field"><label for="g-title">Goal title <span class="req">*</span></label>
+            <input id="g-title" type="text" name="title" maxlength="160" required placeholder="e.g. Build a portfolio project"
+                   th:value="${newTitle}"></div>
+        <div class="field"><label for="g-desc">Description (optional)</label>
+            <textarea id="g-desc" name="description" maxlength="500" rows="2" th:text="${newDescription}"></textarea></div>
+        <button type="submit" class="btn primary">Create goal</button>
+    </form>
+</details>
+
+<div class="tabs" role="tablist">
+    <a th:href="@{/student/goals(tab='goals')}" th:classappend="${tab == 'goals'} ? 'active'">My goals</a>
+    <a th:href="@{/student/goals(tab='pending')}" th:classappend="${tab == 'pending'} ? 'active'">Pending tasks</a>
+    <a th:href="@{/student/goals(tab='done')}" th:classappend="${tab == 'done'} ? 'active'">Completed tasks</a>
+</div>
+
+<div th:if="${tab == 'goals'}">
+    <div th:if="${goals.isEmpty()}">
+        <div th:replace="~{fragments/ui :: empty('No goals yet', 'Create your first goal above, then add small tasks to it.')}"></div>
+    </div>
+    <div class="card" th:each="g : ${goals}" th:id="'goal-' + ${g.id}">
+        <div th:if="${editId != null and editId == g.id}">
+            <form th:action="@{/student/goals/{id}(id=${g.id})}" method="post">
+                <div class="field"><label th:for="'eg-' + ${g.id}">Goal title</label>
+                    <input th:id="'eg-' + ${g.id}" type="text" name="title" maxlength="160" required th:value="${g.title}"></div>
+                <div class="field"><label th:for="'ed-' + ${g.id}">Description</label>
+                    <textarea th:id="'ed-' + ${g.id}" name="description" maxlength="500" rows="2" th:text="${g.description}"></textarea></div>
+                <button type="submit" class="btn primary small">Save goal</button>
+                <a class="btn small" th:href="@{/student/goals}">Cancel</a>
+            </form>
+        </div>
+        <div th:unless="${editId != null and editId == g.id}">
+            <div class="row"><h4 style="margin:0" th:text="${g.title}">Goal</h4>
+                <span class="row-start">
+                    <a class="btn small" th:href="@{/student/goals(edit=${g.id})} + '#goal-' + ${g.id}">Edit</a>
+                    <form th:action="@{/student/goals/{id}/delete(id=${g.id})}" method="post" class="inline"
+                          th:attr="data-confirm=${'Delete the goal “' + g.title + '” and all its tasks?'}">
+                        <button type="submit" class="btn danger small">Delete goal</button></form>
+                </span></div>
+            <p th:if="${g.description != ''}" th:text="${g.description}">desc</p>
+        </div>
+        <div th:replace="~{fragments/ui :: progress(${g.progress()}, ${g.doneCount() + '/' + g.tasks.size() + ' tasks done'}, '')}"></div>
+        <ul class="list mt-s">
+            <li th:each="t : ${g.tasks}" class="row">
+                <form th:action="@{/student/tasks/{id}/done(id=${t.id})}" method="post" class="inline">
+                    <input type="hidden" name="done" th:value="${!t.done}">
+                    <button type="submit" class="link-btn" th:attr="aria-label=${(t.done ? 'Mark as not done: ' : 'Mark as done: ') + t.title}">
+                        <span class="badge" th:classappend="${t.done} ? 'b-success' : 'b-neutral'" th:text="${t.done ? 'Done' : 'To do'}">To do</span>
+                        <span th:text="${t.title}" th:style="${t.done} ? 'text-decoration:line-through;opacity:.7' : ''">Task</span>
+                    </button>
+                </form>
+                <form th:action="@{/student/tasks/{id}/delete(id=${t.id})}" method="post" class="inline"
+                      th:attr="data-confirm=${'Remove the task “' + t.title + '”?'}">
+                    <button type="submit" class="btn small">Remove</button></form>
+            </li>
+            <li th:if="${g.tasks.isEmpty()}" class="muted">No tasks yet - add the first small step below.</li>
+        </ul>
+        <form th:action="@{/student/goals/{id}/tasks(id=${g.id})}" method="post" class="row-start mt-s">
+            <label class="sr-only" th:for="'nt-' + ${g.id}">New task</label>
+            <input th:id="'nt-' + ${g.id}" type="text" name="title" maxlength="200" required placeholder="Add a task..." style="flex:1;min-width:200px">
+            <button type="submit" class="btn small">Add task</button>
+        </form>
+    </div>
+</div>
+
+<div th:if="${tab != 'goals'}">
+    <th:block th:each="g : ${goals}">
+        <div class="card row" style="padding:.7rem 1rem" th:each="t : ${g.tasks}" th:if="${t.done == (tab == 'done')}">
+            <span><b th:text="${t.title}">Task</b> <span class="muted" th:text="'- ' + ${g.title}">goal</span></span>
+            <form th:action="@{/student/tasks/{id}/done(id=${t.id})}" method="post" class="inline">
+                <input type="hidden" name="done" th:value="${!t.done}">
+                <input type="hidden" name="tab" th:value="${tab}">
+                <button type="submit" class="btn small" th:text="${t.done ? 'Mark not done' : 'Mark done'}">Mark</button>
+            </form>
+        </div>
+    </th:block>
+    <p class="muted" th:if="${tab == 'pending' and summary.pending() == 0}">Nothing pending. Add tasks to your goals.</p>
+    <p class="muted" th:if="${tab == 'done' and summary.done() == 0}">Completed tasks will show up here.</p>
+</div>
+</div>
+</body>
+</html>

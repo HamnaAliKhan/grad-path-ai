@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>How the score works - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">How the readiness score works</div>
+    <div class="sub" th:text="${ruleCount} + ' documented, deterministic rules. The official score uses only these rules; the separate model estimate is described on About the Model.'">60 rules</div>
+</div>
+<div class="notice info"><b>Informational and rule-based.</b> <span th:text="${disclaimer}">d</span>
+    No protected or sensitive personal traits (gender, age, ethnicity, religion, disability and so on) are collected or used.</div>
+
+<div class="grid g2">
+    <div class="card">
+        <h4>Seven factors and their maximum points</h4>
+        <ul class="list">
+            <li class="row" th:each="w : ${weights}"><span th:text="${w.key}">CGPA</span><b th:text="${@ui.points(w.value)}">30</b></li>
+            <li class="row"><b>Total</b><b th:text="${@ui.points(totalWeight)}">100</b></li>
+        </ul>
+        <p class="small mt-s">For each factor exactly one tier rule applies; the readiness score is the sum of the seven factor points.</p>
+    </div>
+    <div class="card">
+        <h4>Categories (rule 60)</h4>
+        <ul class="list">
+            <li th:each="c, st : ${categories}"><span class="badge" th:classappend="'b-' + ${c.badge()}" th:text="${c.label()}">c</span>
+                <span class="muted" th:text="${st.index == 0 ? 'below 40' : (st.index == 1 ? '40 to below 70' : '70 or higher')}">range</span></li>
+        </ul>
+        <h4 class="mt">Job-fit score (ranking aid only)</h4>
+        <p class="small">Fit = 55% skill match + 25% resume keyword match + 20% readiness points (Job Ready 100, Developing 60,
+            Needs Improvement 25). Strong fit 75+, Good 55-74, Partial 35-54, Low below 35. It never makes hiring decisions.</p>
+    </div>
+</div>
+
+<div th:each="g : ${grouped}">
+    <div class="section-title" th:text="${g.key}">CGPA</div>
+    <div class="tablewrap">
+        <table class="table">
+            <tr><th style="width:80px">Rule</th><th>Condition</th><th>Outcome</th></tr>
+            <tr th:each="r : ${g.value}"><td><b th:text="${r.number()}">1</b></td><td th:text="${r.condition()}">c</td>
+                <td th:text="${r.outcome()}">o</td></tr>
+        </table>
+    </div>
+</div>
+<div class="card">
+    <h4>Notes on the calculation</h4>
+    <ul class="list">
+        <li>CGPA is divided by the student's grading scale (4.0, 5.0 or 10.0) and rounded to 4 decimal places before the tiers are applied.</li>
+        <li>Effective technical skills = confident skills + half of the skills being learned.</li>
+        <li>Values above the highest tier use the highest tier. Out-of-range input (for example a negative count or a CGPA above
+            the scale) is rejected with a clear validation message.</li>
+        <li>Career skill requirements are illustrative examples, not verified employer requirements.</li>
+    </ul>
+    <p class="muted small" th:text="'Rule engine version ' + ${version}">v</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>About the model - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">About the placement model</div>
+    <div class="sub">A logistic-regression model trained and evaluated entirely in Java. It gives a secondary,
+        data-driven estimate next to the official 60-rule readiness score.</div>
+</div>
+
+<div th:if="${!available}"><div th:replace="~{fragments/ui :: empty('No model loaded', 'The placement model has not been trained or could not be loaded, so the estimate is hidden. The rule-based readiness score works as normal.')}"></div></div>
+
+<th:block th:if="${available}">
+<div class="notice" th:if="${m.synthetic()}"><b>Practice model.</b> This model was trained on synthetic practice data
+    (<span th:text="${m.dataSource()}">source</span>). Its numbers show that the training and evaluation pipeline works;
+    they are <b>not</b> evidence about real students. Retrain it with a licensed placement CSV before relying on it
+    (see the README).</div>
+<div class="notice info"><b>How it is used.</b> <span th:text="${modelDisclaimer}">disclaimer</span>
+    Readiness categories and job fit use only the rule-based score.</div>
+
+<div class="grid g4">
+    <div th:replace="~{fragments/ui :: metric('Test ROC-AUC', ${m.test().rocAuc()}, '0.5 = chance, 1 = perfect ranking')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Accuracy', ${@ui.percent(m.test().accuracy())}, ${'at threshold ' + m.threshold()})}"></div>
+    <div th:replace="~{fragments/ui :: metric('F1 score', ${m.test().f1()}, 'balance of precision and recall')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Training rows', ${m.trainRows()}, ${m.testRows() + ' rows held out for testing'})}"></div>
+</div>
+
+<div class="grid g2">
+    <div th:replace="~{fragments/ui :: chart(${rocChart}, 'ROC curve on held-out test data')}"></div>
+    <div th:replace="~{fragments/ui :: chart(${calibrationChart}, 'Calibration on held-out test data')}"></div>
+</div>
+<div class="insight"><b class="lead">Reading these charts:</b> the ROC curve shows how well the model ranks placed
+    students above non-placed ones - the further it bends towards the top-left, the better. The calibration chart
+    compares the predicted probability with how often students in that range were actually placed; points on the
+    dashed line mean the percentages can be taken at face value.</div>
+
+<div class="section-title">What the model learned</div>
+<div th:replace="~{fragments/ui :: chart(${coefChart}, 'Odds ratio for each feature')}"></div>
+<div class="tablewrap">
+    <table class="table">
+        <tr><th>Feature</th><th>Model input</th><th>Training mean</th><th>Std. deviation</th><th>Weight (log-odds per SD)</th><th>Odds ratio per SD</th></tr>
+        <tr th:each="r : ${featureRows}">
+            <td><b th:text="${r.label()}">CGPA</b></td>
+            <td class="muted" th:text="${r.key()}">cgpa_ratio</td>
+            <td th:text="${#numbers.formatDecimal(r.mean(), 1, 3)}">0.75</td>
+            <td th:text="${#numbers.formatDecimal(r.scale(), 1, 3)}">0.14</td>
+            <td th:text="${#numbers.formatDecimal(r.weight(), 1, 4)}">0.47</td>
+            <td th:text="${'x' + r.oddsRatio()}">1.6</td>
+        </tr>
+        <tr><td><b>Intercept</b></td><td colspan="3" class="muted">log-odds for an average profile</td>
+            <td th:text="${m.bias()}">0.3</td><td></td></tr>
+    </table>
+</div>
+
+<div class="grid g2 mt">
+    <div class="card">
+        <h4>Test results (<span th:text="${m.test().rows()}">2000</span> unseen students)</h4>
+        <div class="tablewrap">
+            <table class="table">
+                <tr><th></th><th>Predicted placed</th><th>Predicted not placed</th></tr>
+                <tr><th>Actually placed</th><td th:text="${m.test().tp()}">tp</td><td th:text="${m.test().fn()}">fn</td></tr>
+                <tr><th>Not placed</th><td th:text="${m.test().fp()}">fp</td><td th:text="${m.test().tn()}">tn</td></tr>
+            </table>
+        </div>
+        <ul class="list">
+            <li><b>Precision</b> <span th:text="${m.test().precision()}">0.7</span> <span class="muted">- of students predicted "placed", the share who were.</span></li>
+            <li><b>Recall</b> <span th:text="${m.test().recall()}">0.9</span> <span class="muted">- of placed students, the share the model found.</span></li>
+            <li><b>Brier score</b> <span th:text="${m.test().brier()}">0.19</span> <span class="muted">- mean squared error of the probabilities (lower is better).</span></li>
+            <li><b>Log loss</b> <span th:text="${m.test().logLoss()}">0.55</span> <span class="muted">- lower is better.</span></li>
+        </ul>
+    </div>
+    <div class="card">
+        <h4>How it was trained</h4>
+        <ul class="list">
+            <li><b>Data:</b> <span th:text="${m.dataSource()}">src</span>; <span th:text="${m.rows()}">10000</span> rows,
+                <span th:text="${@ui.percent(m.placementRate())}">17%</span> placed.</li>
+            <li><b>Features:</b> CGPA (as a share of its scale), projects, internship (yes/no), communication and
+                extracurricular ratings. No sensitive personal data is used.</li>
+            <li><b>Split:</b> stratified 80% training / 20% test. The test rows were used once, at the end.</li>
+            <li><b>Tuning:</b> <span th:text="${m.cvFolds()}">5</span>-fold stratified cross-validation over L2 penalties
+                <span th:text="${#strings.arrayJoin(lambdas, ', ')}">...</span>; chosen
+                <span th:text="${m.lambda()}">1</span> (CV ROC-AUC <span th:text="${m.cvAucMean()}">0.78</span>
+                &plusmn; <span th:text="${m.cvAucStd()}">0.01</span>).</li>
+            <li><b>Threshold:</b> <span th:text="${m.threshold()}">0.5</span>, the value that maximised F1 on the
+                cross-validation predictions.</li>
+            <li><b>Algorithm:</b> <span th:text="${modelName}">LR</span>, model <span th:text="${m.version()}">v</span>,
+                trained <span th:text="${m.trainedAt()}">date</span>.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card">
+    <h4>Limitations</h4>
+    <ul class="list">
+        <li>The model only knows the five features above. Skills, certifications, work experience and the job market are not part of it - the rule-based score covers more of the profile.</li>
+        <li>It can only be as good and as representative as its training data. Patterns from one institution or year may not transfer to another.</li>
+        <li>Inputs outside the range seen in training are clamped to the nearest edge, and the page says so.</li>
+        <li>A probability is about a group of similar students, not a promise about one person.</li>
+    </ul>
+</div>
+</th:block>
+<p class="muted small">Compare with <a th:href="@{/rules}">How the Score Works</a>, which documents the 60 rules behind the official readiness score.</p>
+</div>
+</body>
+</html>

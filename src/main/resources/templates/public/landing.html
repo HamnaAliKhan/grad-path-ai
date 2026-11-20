@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/public :: layout(~{::title}, ~{::#page})}">
+<head><title>GradPath AI - Career readiness for graduates</title></head>
+<body>
+<div id="page" th:remove="tag">
+
+<div id="home"></div>
+<header class="topnav">
+    <a class="brand" href="#home"><span th:replace="~{fragments/ui :: logo(38)}"></span><b>GradPath <i>AI</i></b></a>
+    <nav aria-label="Page sections">
+        <a href="#features">Features</a><a href="#how">How it works</a><a href="#about">About</a><a href="#get-started">Get started</a>
+    </nav>
+</header>
+
+<div th:replace="~{fragments/ui :: flash}"></div>
+<div class="notice info" th:if="${infoMessage != null}" th:text="${infoMessage}">Please sign in.</div>
+
+<div class="grid g-1-12" style="grid-template-columns:1.2fr 1fr;align-items:start">
+    <section class="hero">
+        <span class="badge b-violet" th:text="${appFullName}">Graduate Career Placement Prediction System</span>
+        <h1>Your next opportunity <span>starts here.</span></h1>
+        <p>Understand your career readiness, uncover skill gaps, and build a clearer path from university to employment
+            &mdash; together with your Career Office.</p>
+        <p class="mt">
+            <a class="btn primary" href="#get-started">Check my career readiness</a>
+            <a class="btn" href="#features">Explore features</a>
+        </p>
+        <p class="muted mt" th:text="${tagline}">Your potential. Your pathway. Your next opportunity.</p>
+    </section>
+
+    <section class="card" id="get-started" aria-labelledby="gs-title">
+        <h3 id="gs-title">Get started</h3>
+        <div th:attr="data-tabs=${tab == 'register' ? (regRole == 'officer' ? 'officer' : 'student') : 'signin'}">
+            <div class="tabs" role="tablist">
+                <button type="button" role="tab" data-tab="signin">Sign in</button>
+                <button type="button" role="tab" data-tab="student">Student sign-up</button>
+                <button type="button" role="tab" data-tab="officer">Career Officer</button>
+                <button type="button" role="tab" data-tab="demo" th:if="${demoLoginEnabled}">Quick demo</button>
+            </div>
+
+            <div data-panel="signin" role="tabpanel">
+                <div class="flash error" role="alert" th:if="${loginErrors != null}">
+                    <span th:each="e : ${loginErrors}" th:text="${e}">Error</span>
+                </div>
+                <form th:action="@{/login}" method="post" novalidate>
+                    <div class="field"><label for="si-email">Email</label>
+                        <input id="si-email" type="email" name="email" autocomplete="username" required maxlength="150"
+                               placeholder="name@university.edu" th:value="${loginEmail}"></div>
+                    <div class="field"><label for="si-pw">Password</label>
+                        <input id="si-pw" type="password" name="password" autocomplete="current-password" required maxlength="72"></div>
+                    <div class="field"><label class="check"><input type="checkbox" name="remember" value="true">
+                        Keep me signed in for 30 days on this device</label></div>
+                    <button type="submit" class="btn primary block" data-busy="Signing in...">Sign in</button>
+                </form>
+            </div>
+
+            <div data-panel="student" role="tabpanel" hidden>
+                <div class="flash error" role="alert" th:if="${registerErrors != null and regRole != 'officer'}">
+                    <ul><li th:each="e : ${registerErrors}" th:text="${e}">Error</li></ul>
+                </div>
+                <form th:action="@{/register}" method="post" novalidate>
+                    <input type="hidden" name="role" value="student">
+                    <div class="field"><label for="rs-name">Full name <span class="req">*</span></label>
+                        <input id="rs-name" type="text" name="name" maxlength="80" required autocomplete="name"
+                               th:value="${regRole != 'officer' ? regName : ''}"></div>
+                    <div class="field"><label for="rs-email">Email address <span class="req">*</span></label>
+                        <input id="rs-email" type="email" name="email" maxlength="150" required autocomplete="email"
+                               placeholder="name@university.edu" th:value="${regRole != 'officer' ? regEmail : ''}"></div>
+                    <div class="grid g2">
+                        <div class="field"><label for="rs-pw">Password <span class="req">*</span></label>
+                            <input id="rs-pw" type="password" name="password" maxlength="72" required autocomplete="new-password">
+                            <div class="hint">At least 8 characters with a letter and a number.</div></div>
+                        <div class="field"><label for="rs-pw2">Confirm password <span class="req">*</span></label>
+                            <input id="rs-pw2" type="password" name="confirm" maxlength="72" required autocomplete="new-password"></div>
+                    </div>
+                    <button type="submit" class="btn primary block" data-busy="Creating account...">Create student account</button>
+                    <p class="muted mt-s">Next you'll complete a short profile, then go straight to your dashboard.</p>
+                </form>
+            </div>
+
+            <div data-panel="officer" role="tabpanel" hidden>
+                <div class="notice" th:unless="${officerSignupEnabled}">
+                    Career Officer registration is currently switched off. The site owner must configure an officer access code.
+                </div>
+                <div th:if="${officerSignupEnabled}">
+                    <div class="flash error" role="alert" th:if="${registerErrors != null and regRole == 'officer'}">
+                        <ul><li th:each="e : ${registerErrors}" th:text="${e}">Error</li></ul>
+                    </div>
+                    <form th:action="@{/register}" method="post" novalidate>
+                        <input type="hidden" name="role" value="officer">
+                        <div class="field"><label for="ro-name">Full name <span class="req">*</span></label>
+                            <input id="ro-name" type="text" name="name" maxlength="80" required autocomplete="name"
+                                   th:value="${regRole == 'officer' ? regName : ''}"></div>
+                        <div class="field"><label for="ro-email">Work email <span class="req">*</span></label>
+                            <input id="ro-email" type="email" name="email" maxlength="150" required autocomplete="email"
+                                   th:value="${regRole == 'officer' ? regEmail : ''}"></div>
+                        <div class="field"><label for="ro-office">Office / organisation <span class="req">*</span></label>
+                            <input id="ro-office" type="text" name="office" maxlength="120" required
+                                   placeholder="University Career Office" th:value="${regOffice}"></div>
+                        <div class="field"><label for="ro-code">Officer access code <span class="req">*</span></label>
+                            <input id="ro-code" type="password" name="accessCode" maxlength="120" required autocomplete="off">
+                            <div class="hint">Provided privately by your university's Career Office.</div></div>
+                        <div class="grid g2">
+                            <div class="field"><label for="ro-pw">Password <span class="req">*</span></label>
+                                <input id="ro-pw" type="password" name="password" maxlength="72" required autocomplete="new-password"></div>
+                            <div class="field"><label for="ro-pw2">Confirm password <span class="req">*</span></label>
+                                <input id="ro-pw2" type="password" name="confirm" maxlength="72" required autocomplete="new-password"></div>
+                        </div>
+                        <button type="submit" class="btn primary block" data-busy="Creating account...">Create officer account</button>
+                    </form>
+                </div>
+            </div>
+
+            <div data-panel="demo" role="tabpanel" hidden th:if="${demoLoginEnabled}">
+                <p class="muted">Explore with clearly labelled fictional data. Demo accounts are for local evaluation only.</p>
+                <form th:action="@{/login/demo}" method="post" class="mt-s">
+                    <input type="hidden" name="account" value="student">
+                    <button type="submit" class="btn primary block">Explore as a student (Alex Morgan - fictional)</button>
+                </form>
+                <form th:action="@{/login/demo}" method="post" class="mt-s">
+                    <input type="hidden" name="account" value="officer">
+                    <button type="submit" class="btn block">Explore as a Career Officer (fictional)</button>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="section-big">A look inside</div>
+<p class="muted">Sample preview with illustrative numbers - not real student data.</p>
+<div class="grid" style="grid-template-columns:1fr 1fr 1fr 1.6fr;align-items:start">
+    <div th:replace="~{fragments/ui :: metric('CGPA', '3.42', 'Sample')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Skill match', '72%', 'Software Developer')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Readiness', 'Developing', 'Rule-based score 62/100')}"></div>
+    <div th:replace="~{fragments/ui :: chart(${sampleChart}, 'Sample readiness distribution')}"></div>
+</div>
+
+<div id="features" class="section-big">Everything you need to plan your path</div>
+<div class="grid g4">
+    <div class="card"><h4>Placement readiness</h4><p>A transparent 0-100 score from 60 documented rules, with every factor explained and a what-if simulator.</p></div>
+    <div class="card"><h4>Skill-gap analysis</h4><p>See which skills you have, are learning or are missing for an example career path.</p></div>
+    <div class="card"><h4>Career explorer</h4><p>Responsibilities, skills, preparation steps and project ideas for five career paths.</p></div>
+    <div class="card"><h4>Resume insights</h4><p>Upload a PDF to check keyword coverage, structure and practical improvement tips.</p></div>
+    <div class="card"><h4>Jobs &amp; applications</h4><p>Search listings ranked by your skill match, apply with your resume and track each status.</p></div>
+    <div class="card"><h4>Career goals</h4><p>Break goals into tasks; progress is calculated automatically.</p></div>
+    <div class="card"><h4>Messages</h4><p>Talk directly with your Career Office inside the app.</p></div>
+    <div class="card"><h4>For Career Officers</h4><p>Review students and applications, manage listings and download privacy-safe reports.</p></div>
+</div>
+
+<div id="how" class="section-big">How it works</div>
+<div class="grid g3">
+    <div class="card"><span class="badge b-info">Step 1</span><h4 class="mt-s">Build your profile</h4><p>Add your academics, skills, projects and experience.</p></div>
+    <div class="card"><span class="badge b-info">Step 2</span><h4 class="mt-s">Explore your readiness</h4><p>See your score, strengths and gaps for your target career.</p></div>
+    <div class="card"><span class="badge b-info">Step 3</span><h4 class="mt-s">Plan your next move</h4><p>Follow recommended actions, apply to roles and track your goals.</p></div>
+</div>
+
+<div id="about" class="card center mt" style="padding:2rem">
+    <div class="title" style="font-size:1.6rem">Your career journey deserves a plan.</div>
+    <p class="muted">GradPath AI is an educational decision-support project. Readiness and job-fit scores are rule-based
+        estimates for guidance only - not guarantees, hiring decisions, or measures of a person's worth.</p>
+    <p class="mt"><a class="btn primary" href="#get-started">Get started</a></p>
+</div>
+
+<footer class="footer">
+    <b th:text="${appFullName}">GCPPS</b> &middot; University OOAD project &middot; <span th:text="'v' + ${appVersion}">v2</span><br>
+    Demo records and demo job listings are fictional. Career requirements are illustrative examples.
+</footer>
+</div>
+</body>
+</html>

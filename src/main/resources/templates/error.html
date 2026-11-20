@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/public :: layout(~{::title}, ~{::#page})}">
+<head><title>Something went wrong - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+    <header class="topnav"><a class="brand" href="/"><span th:replace="~{fragments/ui :: logo(36)}"></span><b>GradPath <i>AI</i></b></a></header>
+    <div class="card center" style="padding:2.5rem">
+        <span class="badge b-danger" th:text="${status != null ? status : 'Error'}">500</span>
+        <div class="title mt-s">Something went wrong</div>
+        <p class="muted mt-s">Your data is safe. Please go back and try again in a moment. If the problem continues, contact the Career Office.</p>
+        <p class="mt"><a class="btn primary" href="/">Go to my home page</a></p>
+    </div>
+</div>
+</body>
+</html>

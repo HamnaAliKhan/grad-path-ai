@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Job opportunities - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head row">
+    <div><div class="title">Job opportunities</div>
+        <div class="sub">Search open listings, ranked by how well your skills match.</div></div>
+    <a class="btn" th:href="@{/student/applications}">My applications</a>
+</div>
+<form method="get" th:action="@{/student/jobs}" class="filters card" role="search">
+    <div><label for="jq">Search by title or company</label>
+        <input id="jq" type="search" name="q" maxlength="80" placeholder="e.g. Java, analyst" th:value="${q}"></div>
+    <div><label for="jc">Career category</label>
+        <select id="jc" name="category" data-autosubmit>
+            <option value="All">All</option>
+            <option th:each="c : ${categories}" th:value="${c}" th:text="${c}" th:selected="${c == category}">c</option>
+        </select></div>
+    <div><label for="jl">Experience level</label>
+        <select id="jl" name="level" data-autosubmit>
+            <option value="All">All</option>
+            <option th:each="l : ${levels}" th:value="${l}" th:text="${l}" th:selected="${l == level}">l</option>
+        </select></div>
+    <div><button class="btn primary" type="submit">Search</button></div>
+</form>
+
+<p class="muted" th:if="${!ranked.isEmpty()}" th:text="${ranked.size()} + ' open listing(s), best skill match first.'">n</p>
+<div th:if="${ranked.isEmpty()}">
+    <div th:replace="~{fragments/ui :: empty('No open jobs match your search', 'Try a different keyword or clear the filters.')}"></div>
+</div>
+
+<div class="card" th:each="rj : ${ranked}" th:with="job=${rj.job()}, m=${rj.match()}">
+    <div class="row">
+        <div><a th:href="@{/student/jobs/{id}(id=${job.id})}"><b style="font-size:1.05rem" th:text="${job.title}">Job</b></a>
+            <div class="muted"><span th:text="${job.company}">Company</span> &middot; <span th:text="${job.location}">Remote</span></div></div>
+        <span class="badge" th:classappend="'b-' + ${@ui.matchKind(m.percent())}" th:text="${m.percent() + '% skill match'}">70%</span>
+    </div>
+    <div class="mt-s">
+        <span class="badge b-violet" th:text="${job.category}">cat</span>
+        <span class="badge b-info" th:text="${job.level}">level</span>
+        <span class="badge b-neutral" th:if="${job.demo}">Demo listing (fictional)</span>
+        <span class="badge b-violet" th:unless="${job.demo}">Posted by Career Office</span>
+        <span class="badge b-success" th:if="${applied.contains(job.id)}">Applied</span>
+    </div>
+    <div class="mt-s">
+        <span th:each="s : ${m.matched()}" class="badge b-success" th:text="${s}">s</span>
+        <span th:each="s : ${m.learning()}" class="badge b-warn" th:text="${s + ' (learning)'}">s</span>
+        <span th:each="s : ${m.missing()}" class="badge b-danger" th:text="${s + ' (missing)'}">s</span>
+    </div>
+    <p class="mt-s row-start">
+        <a class="btn small" th:href="@{/student/jobs/{id}(id=${job.id})}">View details</a>
+        <a class="btn primary small" th:unless="${applied.contains(job.id)}" th:href="@{/student/jobs/{id}(id=${job.id})} + '#apply'">Apply now</a>
+    </p>
+</div>
+<p class="disclaimer">Demo listings are demonstration content created for this project and are not real vacancies.
+    Required skills are illustrative.</p>
+</div>
+</body>
+</html>

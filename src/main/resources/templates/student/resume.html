@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Resume analyzer - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Make your resume stronger</div>
+    <div class="sub">Upload your resume as a PDF and compare it with a target career using transparent keyword rules.</div>
+</div>
+<form class="card" th:action="@{/student/resume}" method="post" enctype="multipart/form-data">
+    <div class="grid g2">
+        <div class="field"><label for="rz-career">Target career</label>
+            <select id="rz-career" name="career">
+                <option th:each="c : ${careers}" th:value="${c}" th:text="${c}" th:selected="${c == career}">c</option>
+            </select></div>
+        <div class="field"><label for="rz-file">Resume (text-based PDF, max 5 MB)</label>
+            <input id="rz-file" type="file" name="resume" accept="application/pdf,.pdf" required></div>
+    </div>
+    <p class="muted small">Your file is read as text in memory for this analysis and then discarded - it is not stored and never executed.</p>
+    <button type="submit" class="btn primary" data-busy="Analysing...">Analyze resume</button>
+</form>
+
+<div th:if="${analysis != null}" th:with="r=${analysis}">
+    <div class="section-title" th:text="'Results for ' + ${r.career()}">Results</div>
+    <div class="grid g4">
+        <div th:replace="~{fragments/ui :: metric('Overall score', ${r.score() + ' / 100'}, '70% keywords + 30% structure')}"></div>
+        <div th:replace="~{fragments/ui :: metric('Keyword coverage', ${r.coverage() + '%'}, 'Required career skills found')}"></div>
+        <div th:replace="~{fragments/ui :: metric('Required skills found', ${r.matched().size() + '/' + (r.matched().size() + r.missing().size())}, '')}"></div>
+        <div th:replace="~{fragments/ui :: metric('Word count', ${r.words()}, '150-800 is a good range')}"></div>
+    </div>
+    <div class="card"><div th:replace="~{fragments/ui :: progress(${r.score()}, 'Overall score', ${r.score() >= 70 ? 'green' : ''})}"></div></div>
+    <div class="grid g2">
+        <div class="card"><h4>Matched skills</h4><div th:replace="~{fragments/ui :: badges(${r.matched()}, 'success')}"></div>
+            <h4 class="mt">All recognised skill keywords</h4><div th:replace="~{fragments/ui :: badges(${r.found()}, 'info')}"></div></div>
+        <div class="card"><h4>Missing relevant skills</h4><div th:replace="~{fragments/ui :: badges(${r.missing()}, 'warn')}"></div>
+            <p class="small mt-s">Only add skills you genuinely have.</p></div>
+    </div>
+    <div class="card"><h4 th:text="'Structure checks (' + ${r.checksPassed()} + '/' + ${r.checks().size()} + ' passed)'">Checks</h4>
+        <ul class="list"><li th:each="c : ${r.checks()}">
+            <span class="badge" th:classappend="${c.ok()} ? 'b-success' : 'b-warn'" th:text="${c.ok() ? 'Pass' : 'Fix'}">Pass</span>
+            <span th:text="${c.label()}">label</span></li></ul></div>
+    <div class="card"><h4>Suggested improvements</h4>
+        <ul class="list" th:if="${!r.tips().isEmpty()}"><li th:each="t : ${r.tips()}" th:text="${t}">tip</li></ul>
+        <p th:if="${r.tips().isEmpty()}">Nothing major to fix.</p></div>
+    <div class="card"><h4 th:text="'Project ideas for ' + ${r.career()}">Ideas</h4>
+        <ul class="list"><li th:each="p : ${r.projectIdeas()}" th:text="${p}">p</li></ul></div>
+    <p class="muted small">Keyword analysis is a simple, explainable check - it cannot judge the quality of your experience.</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<!--/* Public layout without authenticated navigation (landing, onboarding, error pages). */-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:fragment="layout(title, content)">
+<head th:replace="~{fragments/head :: head(${title})}"></head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<main class="public" id="main">
+    <th:block th:replace="${content}"></th:block>
+</main>
+</body>
+</html>

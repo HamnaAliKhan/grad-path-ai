@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/public :: layout(~{::title}, ~{::#page})}">
+<head><title>Please try again - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+    <header class="topnav"><a class="brand" href="/"><span th:replace="~{fragments/ui :: logo(36)}"></span><b>GradPath <i>AI</i></b></a></header>
+    <div class="card center" style="padding:2.5rem">
+        <div class="title" th:text="${title}">Problem</div>
+        <p class="muted mt-s" th:text="${message}">message</p>
+        <p class="mt row-start" style="justify-content:center">
+            <a class="btn primary" th:if="${actionHref != null and actionHref != ''}" th:href="@{${actionHref}}" th:text="${actionLabel}">Fix</a>
+            <a class="btn" href="" th:if="${actionHref == ''}">Try again</a>
+            <a class="btn" href="/">Home</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>

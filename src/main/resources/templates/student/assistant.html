@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Career assistant - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Career assistant</div>
+    <div class="sub">Ask about readiness, skills, resumes, internships, interviews, jobs and goals.</div>
+</div>
+<p>
+    <span class="badge b-violet" th:text="${assistantLabel}">Built-in assistant</span>
+    <span class="badge b-neutral" th:if="${assistantLabel == 'Built-in assistant'}">Deterministic, rule-based answers</span>
+    <span class="badge b-neutral" th:unless="${assistantLabel == 'Built-in assistant'}">Falls back to the built-in assistant if unavailable</span>
+</p>
+<div class="notice info small">Your name, email and phone number are never sent to any AI provider. Only anonymous numbers
+    (such as your readiness score and missing skills) are used to personalise answers. Advice is general guidance, not a guarantee.</div>
+<div class="suggestions">
+    <button type="button" class="btn small" th:each="s : ${suggestions}" th:attr="data-suggest=${s}" th:text="${s}">Q</button>
+</div>
+<div class="card">
+    <div id="chat" class="chatbox" aria-live="polite"
+         th:attr="data-greeting=${'Hi ' + firstName + '! What would you like help with today?'}"></div>
+    <form id="chat-form" class="row-start mt" th:attr="data-url=@{/student/assistant/ask}">
+        <label class="sr-only" for="question">Your question</label>
+        <input id="question" name="question" type="text" maxlength="800" autocomplete="off"
+               placeholder="Ask a career question..." style="flex:1;min-width:220px">
+        <button type="submit" class="btn primary">Send</button>
+        <button type="button" class="btn" id="chat-clear">Clear chat</button>
+    </form>
+    <noscript><p class="notice">The assistant needs JavaScript enabled.</p></noscript>
+</div>
+<script defer th:src="@{/js/assistant.js}"></script>
+</div>
+</body>
+</html>

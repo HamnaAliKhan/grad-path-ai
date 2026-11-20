@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Career explorer - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Career explorer</div>
+    <div class="sub">Explore career paths and what it takes to prepare for them.</div>
+</div>
+<p class="notice info" th:text="${catalogDisclaimer}">disclaimer</p>
+<div class="grid g2">
+    <div class="card" th:each="cc : ${careers}">
+        <div class="row"><h4 style="margin:0" th:text="${cc.career().name()}">Career</h4>
+            <span class="badge b-info" th:if="${cc.career().name() == target}">Your target</span></div>
+        <p th:text="${cc.career().description()}">description</p>
+        <div th:replace="~{fragments/ui :: progress(${cc.match()}, 'Your current skill match', ${cc.match() >= 70 ? 'green' : ''})}"></div>
+        <p class="mt-s"><b>Relevant skills</b></p>
+        <span th:each="s : ${cc.career().skillNames()}" class="badge b-violet" th:text="${s}">Skill</span>
+        <p class="mt"><a class="btn primary small" th:href="@{/student/careers/{s}(s=${cc.career().slug()})}"
+                         th:text="'Explore ' + ${cc.career().name()}">Explore</a></p>
+    </div>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+@startuml 01_use_case
+!pragma layout smetana
+title GradPath AI - Use Case Diagram
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #EEF2FF
+  BorderColor #6366F1
+}
+skinparam packageStyle rectangle
+
+actor "Visitor" as V
+actor "Student" as S
+actor "Career Officer" as O
+actor "Site Owner" as SO
+actor "AI Provider\n(optional)" as AI
+
+V <|-- S
+V <|-- O
+
+rectangle "GradPath AI" {
+  usecase "View landing page" as UC0
+  usecase "Register as student" as UC1
+  usecase "Register as officer\n(access code)" as UC2
+  usecase "Sign in / sign out" as UC3
+  usecase "Complete onboarding\n& edit profile" as UC4
+  usecase "View readiness score\n(60 rules)" as UC5
+  usecase "Run what-if simulation" as UC6
+  usecase "View model placement\nestimate (secondary)" as UC22
+  usecase "View model information\n& metrics" as UC23
+  usecase "Train placement model\n(train-model command)" as UC24
+  usecase "Analyse skill gaps" as UC7
+  usecase "Explore careers" as UC8
+  usecase "Search & view jobs" as UC9
+  usecase "Apply for a job\n(PDF resume)" as UC10
+  usecase "Track applications" as UC11
+  usecase "Analyse resume" as UC12
+  usecase "Manage goals & tasks" as UC13
+  usecase "Exchange messages" as UC14
+  usecase "Ask career assistant" as UC15
+  usecase "View officer overview" as UC16
+  usecase "Review student profiles" as UC17
+  usecase "Review applications\n& update status" as UC18
+  usecase "Manage own job listings" as UC19
+  usecase "View reports &\ndownload CSV" as UC20
+  usecase "Configure access code,\ndemo mode, AI keys" as UC21
+  usecase "Validate PDF &\nextract text" as UCX
+  usecase "Calculate job fit" as UCF
+}
+
+V --> UC0
+V --> UC1
+V --> UC2
+V --> UC3
+S --> UC4
+S --> UC5
+S --> UC23
+O --> UC23
+SO --> UC24
+S --> UC7
+S --> UC8
+S --> UC9
+S --> UC11
+S --> UC12
+S --> UC13
+S --> UC14
+S --> UC15
+O --> UC14
+O --> UC16
+O --> UC17
+O --> UC18
+O --> UC19
+O --> UC20
+SO --> UC21
+UC15 --> AI
+
+UC6 .> UC5 : <<extend>>
+UC5 ..> UC22 : <<include>>
+UC17 ..> UC22 : <<include>>
+UC10 .> UC9 : <<extend>>
+UC10 ..> UCX : <<include>>
+UC12 ..> UCX : <<include>>
+UC10 ..> UCF : <<include>>
+UC18 ..> UCF : <<include>>
+@enduml

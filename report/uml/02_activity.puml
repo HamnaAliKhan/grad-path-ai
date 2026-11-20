@@ -1,0 +1,51 @@
+@startuml 02_activity
+title GradPath AI - Activity Diagram: Student applies for a job
+skinparam ActivityBackgroundColor #EEF2FF
+skinparam ActivityBorderColor #6366F1
+
+|Student|
+start
+:Sign in;
+if (Profile onboarded?) then (no)
+  :Complete onboarding form;
+  |System|
+  :Validate profile & store;
+  :Evaluate 60 readiness rules\nand save history record;
+  |Student|
+else (yes)
+endif
+:Open Job Opportunities;
+|System|
+:Rank open listings by skill match;
+|Student|
+:Choose a listing and open details;
+:Fill application (phone, availability,\nlink, cover note, consent) and attach PDF;
+|System|
+if (Listing open?) then (no)
+  :Show "position closed";
+  stop
+endif
+if (Already applied?) then (yes)
+  :Show "already applied";
+  stop
+endif
+:Validate form fields;
+:Check PDF signature, size, pages;\nextract text with PDFBox;
+if (Valid?) then (no)
+  |Student|
+  :See validation errors and correct them;
+  stop
+else (yes)
+  |System|
+  :Compute fit = 55% skill + 25% resume\n+ 20% readiness points;
+  :Save application + resume PDF;
+  :Publish ActivityEvent ("Applied for a job");
+endif
+|Career Officer|
+:Review ranked applications;
+:Open application & resume;
+:Update status;
+|Student|
+:See new status in tracker;
+stop
+@enduml

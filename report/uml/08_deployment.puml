@@ -1,0 +1,40 @@
+@startuml 08_deployment
+!pragma layout smetana
+title GradPath AI - Deployment Diagram
+skinparam node {
+  BackgroundColor #EEF2FF
+  BorderColor #6366F1
+}
+
+node "User device" as dev {
+  artifact "Web browser\n(HTML, CSS, JS)" as br
+}
+node "cdnjs.cloudflare.com / Google Fonts" as cdn {
+  artifact "plotly.min.js 2.35.3 (SRI)" as plotly
+  artifact "Inter font" as font
+}
+node "Application host\n(e.g. container platform or lab PC)" as host {
+  node "JVM 21 (Eclipse Temurin)" as jvm {
+    artifact "gradpath-ai.jar\n(Spring Boot, Tomcat, Thymeleaf)" as jar
+    artifact "ml/placement-model.json\n(bundled in the jar)" as model
+  }
+  artifact "Environment / secrets\nDATABASE_URL, OFFICER_ACCESS_CODE,\nGROQ_API_KEY ..." as env
+}
+node "Neon (serverless PostgreSQL 18)" as neon {
+  database "neondb\n(users, students, jobs,\napplications, messages, ...)" as db
+}
+node "AI provider (optional)\napi.groq.com" as groq
+
+br --> jar : HTTPS :443 / HTTP :8080
+br --> cdn : HTTPS
+jar --> db : JDBC over TLS (sslmode=require)
+jar --> groq : HTTPS (anonymous context)
+jar ..> env : reads at start-up
+jar ..> model : loads once at start-up
+node "Developer / officer PC (offline)" as dev2 {
+  artifact "placement.csv" as csv
+  artifact "java -jar gradpath-ai.jar\ntrain-model placement.csv" as trainer
+}
+trainer ..> csv : reads
+trainer ..> model : writes new model
+@enduml

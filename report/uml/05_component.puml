@@ -1,0 +1,51 @@
+@startuml 05_component
+!pragma layout smetana
+title GradPath AI - Component Diagram
+skinparam component {
+  BackgroundColor #EEF2FF
+  BorderColor #6366F1
+}
+
+package "Browser" {
+  [Thymeleaf HTML pages] as Pages
+  [app.js / charts.js / whatif.js /\nassistant.js / messages.js] as JS
+  [Plotly.js (CDN)] as Plotly
+}
+
+package "GradPath AI (Spring Boot application)" {
+  [Security\n(SessionTokenFilter, CSRF,\nrole rules, BCrypt)] as Sec
+  [Web Controllers\n+ ChartFactory + ViewHelper] as Web
+  [Readiness Rule Engine\n(60 rules)] as Engine
+  [Placement Model\n(logistic regression,\ntrainer, metrics)] as ML
+  [PlacementModelService\n(Facade)] as MLS
+  [Domain Services\n(Auth, Student, Readiness, Recommendation,\nSkillGap, Job, Application, Resume,\nGoal, Message, Report, Activity)] as Services
+  [Career Assistant\n(Strategy + Factory)] as Assistant
+  [Career Catalog\n(reference data)] as Catalog
+  [Repositories\n(Spring Data JPA)] as Repo
+  [Flyway migrations] as Flyway
+  [Apache PDFBox] as PDF
+}
+
+database "Neon PostgreSQL" as DB
+artifact "placement-model.json\n(coefficients + metrics)" as ModelFile
+artifact "placement.csv\n(training data, offline)" as CSV
+cloud "Groq / OpenAI /\nGemini / Anthropic\n(optional)" as LLM
+
+Pages --> Sec : HTTPS (cookie + CSRF)
+JS --> Sec : fetch JSON
+JS ..> Plotly
+Sec --> Web
+Web --> Services
+Services --> Engine
+Web --> MLS
+MLS --> ML
+ML ..> ModelFile : loads JSON
+Services --> Catalog
+Services --> Assistant
+Services --> PDF
+Services --> Repo
+Repo --> DB : JDBC / TLS
+Flyway --> DB : schema
+ML ..> CSV : train-model (offline)
+Assistant ..> LLM : HTTPS (anonymous context only)
+@enduml

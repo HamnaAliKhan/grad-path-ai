@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>My applications - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head row">
+    <div><div class="title">My applications</div>
+        <div class="sub">Track the status of every application and see how its fit was calculated.</div></div>
+    <a class="btn primary" th:href="@{/student/jobs}">Find more jobs</a>
+</div>
+<div th:if="${applications.isEmpty()}">
+    <div th:replace="~{fragments/ui :: empty('No applications yet', 'Open Job Opportunities and choose Apply now on a listing you like.')}"></div>
+</div>
+<div class="card" th:each="a : ${applications}" th:with="fit=${@ui.fit(a.fitScore)}">
+    <div class="row">
+        <div><b th:text="${a.job.title}">Job</b>
+            <div class="muted"><span th:text="${a.job.company}">Company</span> &middot; applied
+                <time th:attr="datetime=${@ui.iso(a.createdAt)}" th:text="${@ui.time(a.createdAt)}">t</time></div></div>
+        <span class="badge" th:classappend="'b-' + ${@ui.statusKind(a.status)}" th:text="${a.status}">Submitted</span>
+    </div>
+    <div class="mt-s">
+        <span class="badge" th:classappend="'b-' + ${fit.badge()}" th:text="${fit.label() + ' (' + a.fitScore + '/100)'}">fit</span>
+        <span class="badge b-neutral" th:text="'Skill match ' + ${a.skillMatch} + '%'">s</span>
+        <span class="badge b-neutral" th:text="'Resume match ' + ${a.resumeMatch} + '%'">r</span>
+        <span class="badge" th:classappend="'b-' + ${@ui.categoryKind(a.readinessCategory)}"
+              th:text="'Readiness: ' + ${a.readinessCategory} + ' (' + ${@ui.points(a.readinessScore)} + ')'">c</span>
+        <span class="badge b-neutral" th:if="${a.job.demo}">Demo listing</span>
+        <span class="badge b-danger" th:if="${!a.job.open}">Listing closed</span>
+    </div>
+    <p class="small mt-s" th:text="'Fit = 0.55 x ' + ${a.skillMatch} + ' + 0.25 x ' + ${a.resumeMatch} + ' + 0.20 x readiness points (' + ${a.readinessCategory} + ') = ' + ${a.fitScore}">calc</p>
+    <p class="small"><span class="muted" th:text="'Availability: ' + ${a.availability}">av</span>
+        <a th:if="${!a.student.demo}" th:href="@{/student/applications/{id}/resume(id=${a.id})}">Download the resume you submitted</a></p>
+</div>
+<div class="insight" th:if="${!applications.isEmpty()}"><b class="lead">How applications are ranked:</b> the Career Office
+    reviews applications from best to lowest fit, but every application is read by a person. Raising your skill match and
+    mentioning those skills in your resume improves your fit. Watch your Messages for replies.</div>
+</div>
+</body>
+</html>

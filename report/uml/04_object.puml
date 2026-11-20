@@ -1,0 +1,70 @@
+@startuml 04_object
+!pragma layout smetana
+title GradPath AI - Object Diagram (fictional demo snapshot)
+skinparam object {
+  BackgroundColor #F8FAFF
+  BorderColor #6366F1
+}
+
+object "alex : Student" as alex {
+  name = "Alex Morgan (fictional)"
+  cgpa = 3.35
+  cgpaScale = 4.0
+  projects = 3
+  internships = 1
+  communication = 7
+  extracurricular = 6
+  targetCareer = "Software Developer"
+  demo = true
+}
+object "jordan : CareerOfficer" as jordan {
+  name = "Jordan Lee (fictional)"
+  office = "Demo University Career Office"
+  demo = true
+}
+object "goal1 : CareerGoal" as goal {
+  title = "Become job-ready for Software Developer roles"
+  progress() = 25
+}
+object "t1 : GoalTask" as t1 {
+  title = "Build a portfolio project with tests"
+  done = true
+}
+object "t2 : GoalTask" as t2 {
+  title = "Learn REST API design"
+  done = false
+}
+object "job1 : Job" as job {
+  title = "Junior Java Developer"
+  company = "NovaStack Labs (fictional)"
+  skills = "Java,OOP,Git,SQL"
+  open = true
+  demo = true
+}
+object "app1 : JobApplication" as app {
+  skillMatch = 100
+  resumeMatch = 75
+  readinessCategory = "Developing"
+  fitScore = 86
+  status = "Shortlisted"
+}
+object "r1 : ReadinessAssessment" as r1 {
+  score = 58.0
+  category = "Developing"
+  ruleEngineVersion = "rules-1.0"
+  preliminary = false
+}
+object "m1 : Message" as m1 {
+  body = "Welcome to GradPath AI!"
+  read = true
+}
+
+alex *-- goal
+goal *-- t1
+goal *-- t2
+alex -- app
+app -- job
+alex -- r1
+jordan -- m1 : sender
+m1 -- alex : recipient
+@enduml

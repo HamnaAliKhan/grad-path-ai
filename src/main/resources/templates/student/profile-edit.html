@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Edit profile - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Edit my profile</div>
+    <div class="sub">Saving recalculates your readiness score and adds it to your score history.</div>
+</div>
+<form th:replace="~{fragments/profile-form :: form('/student/profile/edit', 'Save profile', '/student/profile')}"></form>
+</div>
+</body>
+</html>

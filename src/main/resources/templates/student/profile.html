@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>My profile - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head row">
+    <div><div class="title">My profile</div>
+        <div class="sub">Keep this up to date. Your readiness score, recommendations and job matches use it.</div></div>
+    <a class="btn primary" th:href="@{/student/profile/edit}">Edit profile</a>
+</div>
+<div class="card">
+    <div th:replace="~{fragments/ui :: progress(${completion.percent()}, 'Profile completion', '')}"></div>
+    <p class="muted mt-s" th:if="${!completion.missing().isEmpty()}"
+       th:text="'Still missing: ' + ${#strings.listJoin(completion.missing(), ', ')}">Missing</p>
+</div>
+<div class="card">
+    <dl class="facts">
+        <div><dt>Email</dt><dd th:text="${student.email}">email</dd></div>
+        <div><dt>Phone</dt><dd th:text="${student.phone != '' ? student.phone : '-'}">phone</dd></div>
+        <div><dt>City</dt><dd th:text="${student.city != '' ? student.city : '-'}">city</dd></div>
+        <div><dt>University</dt><dd th:text="${student.university}">uni</dd></div>
+        <div><dt>Degree</dt><dd th:text="${student.degree}">BS</dd></div>
+        <div><dt>Department</dt><dd th:text="${student.department}">CS</dd></div>
+        <div><dt>Graduation year</dt><dd th:text="${student.graduationYear}">2027</dd></div>
+        <div><dt>CGPA</dt><dd th:text="${@ui.two(student.cgpa) + ' / ' + @ui.scale(student.cgpaScale)}">3.35</dd></div>
+        <div><dt>Target career</dt><dd th:text="${student.targetCareer}">Software Developer</dd></div>
+        <div><dt>Completed projects</dt><dd th:text="${student.projects}">3</dd></div>
+        <div><dt>Internships</dt><dd th:text="${student.internships}">1</dd></div>
+        <div><dt>Work experience</dt><dd th:text="${student.workExperienceMonths + ' months'}">4</dd></div>
+        <div><dt>Communication</dt><dd th:text="${student.communication + ' / 10'}">7</dd></div>
+        <div><dt>Extracurricular</dt><dd th:text="${student.extracurricular + ' / 10'}">6</dd></div>
+        <div><dt>Portfolio</dt><dd>
+            <a th:if="${student.portfolioUrl != ''}" th:href="${student.portfolioUrl}" th:text="${student.portfolioUrl}"
+               rel="noopener noreferrer nofollow" target="_blank">link</a>
+            <span th:if="${student.portfolioUrl == ''}">-</span></dd></div>
+    </dl>
+</div>
+<div class="card">
+    <h4>Skills I am confident in</h4>
+    <div th:replace="~{fragments/ui :: badges(${student.skillList()}, 'violet')}"></div>
+    <h4 class="mt">Skills I am learning</h4>
+    <div th:replace="~{fragments/ui :: badges(${student.learningList()}, 'warn')}"></div>
+    <h4 class="mt">Certifications</h4>
+    <div th:replace="~{fragments/ui :: badges(${student.certList()}, 'info')}"></div>
+</div>
+<div class="card">
+    <h4>Sign-in security</h4>
+    <p th:text="'You have ' + ${sessions} + ' active sign-in session(s). Sessions last up to 30 days when you choose to stay signed in.'">Sessions</p>
+    <form th:action="@{/logout-all}" method="post" class="mt-s"
+          data-confirm="Sign out of GradPath AI on every device, including this one?">
+        <button type="submit" class="btn danger small">Sign out of all devices</button>
+    </form>
+</div>
+</div>
+</body>
+</html>

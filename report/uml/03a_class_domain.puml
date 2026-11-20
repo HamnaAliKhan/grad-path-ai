@@ -1,0 +1,126 @@
+@startuml 03a_class_domain
+!pragma layout smetana
+title GradPath AI - Class Diagram (domain model)
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F8FAFF
+  BorderColor #6366F1
+}
+hide empty members
+
+enum Role {
+  STUDENT
+  OFFICER
+}
+
+abstract class User {
+  - id : Integer
+  - email : String
+  - name : String
+  - passwordHash : String
+  - createdAt : LocalDateTime
+  + {abstract} getRole() : Role
+  + {abstract} isDemo() : boolean
+  + canSignIn() : boolean
+  + initials() : String
+}
+
+class Student {
+  - university, degree, department : String
+  - graduationYear : int
+  - cgpa : double
+  - cgpaScale : double
+  - skills, learningSkills, certifications : String
+  - projects, internships, workExperienceMonths : int
+  - communication, extracurricular : int
+  - targetCareer, phone, city, portfolioUrl : String
+  - demo : boolean
+  + isOnboarded() : boolean
+  + profileCompletion() : ProfileCompletion
+  + addGoal(g : CareerGoal)
+}
+
+class CareerOfficer {
+  - office : String
+  - demo : boolean
+}
+
+class CareerGoal {
+  - title : String
+  - description : String
+  + progress() : int
+  + addTask(t : GoalTask)
+}
+class GoalTask {
+  - title : String
+  - done : boolean
+}
+
+class Job {
+  - title, company, category, level : String
+  - skills, description, location : String
+  - demo : boolean
+  - open : boolean
+  + skillList() : List<String>
+  + isManageableBy(officerId) : boolean
+}
+
+class JobApplication <<association class>> {
+  - phone, portfolioUrl, availability : String
+  - coverNote, resumeText, resumeFilename : String
+  - skillMatch, resumeMatch, fitScore : int
+  - readinessCategory : String
+  - readinessScore : double
+  - status : String
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+ UNDER_REVIEW
+ SHORTLISTED
+ INTERVIEW
+ OFFER
+  NOT_SELECTED
+}
+
+class ReadinessAssessment {
+  - score : double
+  - category : String
+  - ruleEngineVersion : String
+  - preliminary : boolean
+  - legacy : boolean
+}
+class Message {
+  - body : String
+  - read : boolean
+  - createdAt : LocalDateTime
+}
+class AuthSession {
+  - tokenHash : String
+  - expiresAt : LocalDateTime
+  - persistent : boolean
+}
+class ActivityLog {
+  - action : String
+  - detail : String
+}
+class ProfileCompletion <<record>> {
+  + percent : int
+  + missing : List<String>
+}
+
+User <|-- Student
+User <|-- CareerOfficer
+User ..> Role
+Student "1" *-- "0..*" CareerGoal : owns >
+CareerGoal "1" *-- "0..*" GoalTask : owns >
+CareerOfficer "0..1" o-- "0..*" Job : creates >
+Student "1" -- "0..*" JobApplication
+Job "1" -- "0..*" JobApplication
+JobApplication ..> ApplicationStatus
+Student "1" -- "0..*" ReadinessAssessment : history >
+User "1" -- "0..*" Message : sends / receives
+User "1" -- "0..*" AuthSession : signs in with >
+User "0..1" -- "0..*" ActivityLog
+Student ..> ProfileCompletion
+@enduml

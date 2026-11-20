@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Placement readiness - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Understand your career readiness</div>
+    <div class="sub">A transparent, rule-based score from 0 to 100 - every point is explained below.</div>
+</div>
+
+<div class="notice info"><b>Informational only.</b> <span th:text="${disclaimer}">disclaimer</span></div>
+<div class="notice" th:if="${result.preliminary()}">
+    <b>Preliminary (rule 59).</b> Your profile is only <span th:text="${result.profileCompletion()} + '%'">40%</span> complete,
+    so this score is incomplete and should not be relied on. Missing information:
+    <span th:text="${#strings.listJoin(result.missingInformation(), ', ')}">items</span>.
+    <a th:href="@{/student/profile/edit}">Complete your profile</a>.
+</div>
+
+<div class="grid g-1-12">
+    <div class="card">
+        <div class="chart" style="min-height:260px" role="img"
+             th:attr="data-chart=${@ui.json(gaugeChart)},aria-label=${'Readiness score ' + result.scoreLabel() + ' out of 100'}"></div>
+        <div class="center">
+            <span class="badge" th:classappend="'b-' + ${result.category().badge()}" th:text="${result.category().label()}">Developing</span>
+            <span class="badge b-neutral" th:text="${'Profile ' + result.profileCompletion() + '% complete'}">Profile</span>
+            <span class="badge b-warn" th:if="${result.preliminary()}">Preliminary</span>
+        </div>
+        <p class="center muted mt-s" th:text="'Score = ' + ${result.calculation()}">calc</p>
+    </div>
+    <div th:replace="~{fragments/ui :: chart(${factorChart}, 'Points earned for each factor')}"></div>
+</div>
+<div class="insight"><b class="lead">What this means:</b>
+    <span th:text="'Your score is ' + ${result.scoreLabel()} + ' out of 100, which falls in the ' + ${result.category().label()} + ' category (rule 60). ' + ${result.category().meaning()}">text</span>
+    The score adds up seven factors - CGPA counts most (30 points). It is not a probability of being hired.</div>
+
+<div class="section-title">How each factor was calculated</div>
+<div class="tablewrap">
+    <table class="table">
+        <tr><th>Factor</th><th>Weight</th><th>Points</th><th>Rule(s)</th><th>Calculation</th><th>What it means</th></tr>
+        <tr th:each="f : ${result.factors()}">
+            <td><b th:text="${f.name()}">CGPA</b></td>
+            <td th:text="${@ui.points(f.maxPoints())}">30</td>
+            <td class="nowrap"><b th:text="${@ui.points(f.points())}">16</b>
+                <div class="bar" style="min-width:80px"><div th:style="'width:' + ${f.percent()} + '%'"></div></div></td>
+            <td class="nowrap" th:text="${f.rulesLabel()}">Rule 5</td>
+            <td th:text="${f.calculation()}">calc</td>
+            <td class="muted" th:text="${f.explanation()}">advice</td>
+        </tr>
+        <tr><td><b>Total</b></td><td>100</td><td><b th:text="${result.scoreLabel()}">62</b></td>
+            <td th:text="'Rules applied: ' + ${#strings.listJoin(result.appliedRules(), ', ')}">rules</td>
+            <td colspan="2" th:text="${result.calculation()}">sum</td></tr>
+    </table>
+</div>
+<p class="muted small">Rule engine <span th:text="${result.engineVersion()}">rules-1.0</span>. See
+    <a th:href="@{/rules}">How the Score Works</a> for all 60 rules.</p>
+
+<th:block th:if="${estimate != null}">
+<div class="section-title">Data-driven placement estimate <span class="badge b-neutral">Secondary</span></div>
+<div class="grid g-1-12">
+    <div class="card">
+        <div class="l muted">Estimated chance of placement</div>
+        <div style="font-size:2.4rem;font-weight:700" th:text="${estimate.percentLabel()}">58%</div>
+        <span class="badge" th:classappend="'b-' + ${estimate.badge()}" th:text="${estimate.band()}">Moderate</span>
+        <span class="badge b-warn" th:if="${estimate.synthetic()}">Practice model</span>
+        <p class="muted small mt-s" th:text="'Placement rate in the training data: ' + ${estimate.baseRateLabel()} + '. Model ' + ${estimate.modelVersion()} + '.'">base</p>
+        <p class="muted small" th:if="${estimate.extrapolated()}">Some of your values are outside the range the model
+            was trained on, so they were treated as the nearest value it has seen.</p>
+        <ul class="list">
+            <li th:each="c : ${estimate.contributions()}" class="small"
+                th:text="${estimate.describe(c)}">CGPA raises</li>
+        </ul>
+    </div>
+    <div th:replace="~{fragments/ui :: chart(${contributionChart}, 'Feature effects on your placement estimate')}"></div>
+</div>
+<div class="insight"><b class="lead">How this differs from your score:</b> a logistic-regression model looks at five
+    of your inputs (CGPA, projects, internship, communication, extracurricular) and estimates how often students
+    with similar values were placed in its training data. <span th:text="${modelDisclaimer}">disclaimer</span>
+    <a th:href="@{/model}">About the model</a>.</div>
+</th:block>
+
+<div class="grid g2 mt">
+    <div class="card">
+        <h4>Main strengths</h4>
+        <ul class="list" th:if="${!result.strengths().isEmpty()}">
+            <li th:each="f : ${result.strengths()}"><b th:text="${f.name()}">CGPA</b>
+                <span class="muted" th:text="${f.measured()}">detail</span></li>
+        </ul>
+        <p th:if="${result.strengths().isEmpty()}">No factor has reached 70% of its weight yet. Small improvements add up quickly.</p>
+    </div>
+    <div class="card">
+        <h4>Areas requiring improvement</h4>
+        <ul class="list" th:if="${!result.weaknesses().isEmpty()}">
+            <li th:each="f : ${result.weaknesses()}"><b th:text="${f.name()}">Projects</b>
+                <span class="muted" th:text="${f.measured() + ' - ' + @ui.points(f.gap()) + ' points still available'}">detail</span></li>
+        </ul>
+        <p th:if="${result.weaknesses().isEmpty()}">No factor is below half of its weight.</p>
+    </div>
+</div>
+
+<div class="card">
+    <h4>What the three categories mean (rule 60)</h4>
+    <ul class="list">
+        <li th:each="c : ${categories}"><span class="badge" th:classappend="'b-' + ${c.badge()}" th:text="${c.label()}">cat</span>
+            <span class="muted" th:text="${c == categories[0] ? 'Below 40. ' : (c == categories[1] ? '40 to below 70. ' : '70 or higher. ')} + ${c.meaning()}">meaning</span></li>
+    </ul>
+</div>
+
+<div class="section-title">Your biggest levers</div>
+<div th:if="${plan.levers().isEmpty()}" class="notice info">None of the improvements we tested would raise your score -
+    your profile is already near the top of what the rules measure.</div>
+<div class="card" th:each="l, st : ${plan.levers()}">
+    <div class="row"><b th:text="${st.count + '. ' + l.title()}">Lever</b>
+        <span><b style="font-size:1.2rem" th:text="'+' + ${l.gainLabel()}">+4</b> <span class="muted">points</span></span></div>
+    <p th:text="${l.detail()}">detail</p>
+    <div th:replace="~{fragments/ui :: progress(${100.0 * l.gain() / plan.levers()[0].gain()}, null, 'green')}"></div>
+    <span class="muted small" th:text="'Score would go from ' + ${plan.baseline().scoreLabel()} + ' to ' + ${@ui.points(l.newScore())}">from-to</span>
+    <span class="badge b-success" th:if="${l.movesUp()}" th:text="'Moves you to ' + ${l.newCategory().label()}">moves</span>
+</div>
+<div class="accent" th:if="${plan.combined() != null}">
+    <div style="opacity:.9;font-weight:600" th:text="'If you did the top ' + ${plan.combinedTitles().size()} + ' together'">Combined</div>
+    <div class="big" th:text="${plan.baseline().scoreLabel()} + ' → ' + ${plan.combined().scoreLabel()}">62 → 80</div>
+    <p th:text="${#strings.listJoin(plan.combinedTitles(), ' + ')} + '. Category: ' + ${plan.baseline().category().label()} + ' → ' + ${plan.combined().category().label()} + '.'">text</p>
+</div>
+<div class="insight"><b class="lead">How these were calculated:</b> each realistic change was applied to a copy of your
+    profile and re-scored with exactly the same 60 rules. Nothing is saved, and the numbers are rule outcomes - not promises.</div>
+
+<details class="card" id="what-if-panel" open>
+    <summary>Try a what-if scenario (nothing is saved)</summary>
+    <p class="muted">Move the sliders to see how the rules would score a different profile. Your saved profile and score
+        history only change when you <a th:href="@{/student/profile/edit}">update your profile</a>.</p>
+    <form id="whatif" th:attr="data-url=@{/student/readiness/what-if}">
+        <div class="grid g3">
+            <div class="field"><label for="wi-cgpa">CGPA: <output id="wi-cgpa-out"></output> / <span th:text="${@ui.scale(student.cgpaScale)}">4.0</span></label>
+                <input id="wi-cgpa" type="range" name="cgpa" min="0" step="0.01" data-out="wi-cgpa-out"
+                       th:attr="max=${student.cgpaScale}" th:value="${student.cgpa}"></div>
+            <div class="field"><label for="wi-proj">Projects: <output id="wi-proj-out"></output></label>
+                <input id="wi-proj" type="range" name="projects" min="0" step="1" data-out="wi-proj-out"
+                       th:attr="max=${@ui.atLeast(10, student.projects)}" th:value="${student.projects}"></div>
+            <div class="field"><label for="wi-int">Internships: <output id="wi-int-out"></output></label>
+                <input id="wi-int" type="range" name="internships" min="0" step="1" data-out="wi-int-out"
+                       th:attr="max=${@ui.atLeast(6, student.internships)}" th:value="${student.internships}"></div>
+            <div class="field"><label for="wi-months">Work experience (months): <output id="wi-months-out"></output></label>
+                <input id="wi-months" type="range" name="workMonths" min="0" step="1" data-out="wi-months-out"
+                       th:attr="max=${@ui.atLeast(36, student.workExperienceMonths)}" th:value="${student.workExperienceMonths}"></div>
+            <div class="field"><label for="wi-skills">Confident skills: <output id="wi-skills-out"></output></label>
+                <input id="wi-skills" type="range" name="confidentSkills" min="0" step="1" data-out="wi-skills-out"
+                       th:attr="max=${@ui.atLeast(12, student.skillList().size())}" th:value="${student.skillList().size()}"></div>
+            <div class="field"><label for="wi-learn">Skills being learned: <output id="wi-learn-out"></output></label>
+                <input id="wi-learn" type="range" name="learningSkills" min="0" step="1" data-out="wi-learn-out"
+                       th:attr="max=${@ui.atLeast(8, student.learningList().size())}" th:value="${student.learningList().size()}"></div>
+            <div class="field"><label for="wi-cert">Certifications: <output id="wi-cert-out"></output></label>
+                <input id="wi-cert" type="range" name="certifications" min="0" step="1" data-out="wi-cert-out"
+                       th:attr="max=${@ui.atLeast(6, student.certList().size())}" th:value="${student.certList().size()}"></div>
+            <div class="field"><label for="wi-comm">Communication: <output id="wi-comm-out"></output> / 10</label>
+                <input id="wi-comm" type="range" name="communication" min="0" max="10" step="1" data-out="wi-comm-out"
+                       th:value="${student.communication}"></div>
+            <div class="field"><label for="wi-extra">Extracurricular: <output id="wi-extra-out"></output> / 10</label>
+                <input id="wi-extra" type="range" name="extracurricular" min="0" max="10" step="1" data-out="wi-extra-out"
+                       th:value="${student.extracurricular}"></div>
+        </div>
+        <button type="reset" class="btn small">Reset to my profile</button>
+    </form>
+    <div id="whatif-result" class="mt" aria-live="polite"><p class="muted">Calculating...</p></div>
+</details>
+<script defer th:src="@{/js/whatif.js}"></script>
+
+<div class="section-title">Recommended next steps</div>
+<div class="card" th:each="a : ${actions}">
+    <div class="row"><h4 style="margin:0" th:text="${a.title()}">Title</h4><a class="btn small" th:href="@{${a.link()}}">Open</a></div>
+    <p th:text="${a.detail()}">detail</p>
+</div>
+<p class="muted" th:if="${actions.isEmpty()}">Every factor is at 85% or more of its weight - keep your profile current and start applying.</p>
+
+<div class="section-title">Score history</div>
+<div th:if="${historyChart != null}"><div th:replace="~{fragments/ui :: chart(${historyChart}, 'Readiness score over time')}"></div></div>
+<div class="tablewrap" th:if="${!history.isEmpty()}">
+    <table class="table">
+        <tr><th>Saved</th><th>Score</th><th>Category</th><th>Status</th><th>Engine</th></tr>
+        <tr th:each="h : ${history}">
+            <td><time th:attr="datetime=${@ui.iso(h.createdAt)}" th:text="${@ui.time(h.createdAt)}">t</time></td>
+            <td th:text="${@ui.points(h.score)}">62</td>
+            <td><span class="badge" th:classappend="'b-' + ${@ui.categoryKind(h.category)}" th:text="${h.category}">c</span></td>
+            <td th:text="${h.preliminary ? 'Preliminary' : 'Complete profile'}">ok</td>
+            <td class="muted" th:text="${h.ruleEngineVersion}">rules-1.0</td>
+        </tr>
+    </table>
+</div>
+<p class="muted small" th:if="${legacyCount > 0}"
+   th:text="${legacyCount} + ' earlier estimate(s) from the previous (machine-learning) version are kept in the database but not shown, because they used a different method.'">legacy</p>
+<p class="muted" th:if="${history.isEmpty()}">Your score is saved each time you update your profile.</p>
+<p th:replace="~{fragments/ui :: disclaimer}"></p>
+</div>
+</body>
+</html>

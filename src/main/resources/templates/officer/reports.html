@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Reports and analytics - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head row">
+    <div><div class="title">Reports and analytics</div>
+        <div class="sub">All figures are calculated from records in the database using the rule-based readiness engine.</div></div>
+    <form method="get" th:action="@{/officer/reports}">
+        <label for="rp-demo">Records</label>
+        <select id="rp-demo" name="demo" data-autosubmit>
+            <option value="true" th:selected="${includeDemo}">Registered + fictional demo</option>
+            <option value="false" th:selected="${!includeDemo}">Registered students only</option>
+        </select>
+    </form>
+</div>
+
+<div th:if="${snapshot.isEmpty()}">
+    <div th:replace="~{fragments/ui :: empty('No records to report on', 'Wait for students to complete their profiles, or include demo records.')}"></div>
+</div>
+
+<div th:unless="${snapshot.isEmpty()}">
+    <div class="grid g4">
+        <div th:replace="~{fragments/ui :: metric('Student records', ${rows.size()}, ${snapshot.demoCount() + ' fictional demo'})}"></div>
+        <div th:replace="~{fragments/ui :: metric('Mean readiness score', ${@ui.one(meanScore)}, 'Out of 100')}"></div>
+        <div th:replace="~{fragments/ui :: metric('Median readiness score', ${@ui.one(medianScore)}, 'Out of 100')}"></div>
+        <div th:replace="~{fragments/ui :: metric('Average CGPA', ${@ui.two(avgCgpa)}, '4.0-equivalent')}"></div>
+    </div>
+
+    <div class="section-title">Readiness</div>
+    <div class="grid g2">
+        <div><div th:replace="~{fragments/ui :: chart(${charts.get('donut')}, 'Readiness categories')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${insights.get('donut')}">i</span></div></div>
+        <div><div th:replace="~{fragments/ui :: chart(${charts.get('source')}, 'Readiness by data source')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${insights.get('source')}">i</span></div></div>
+    </div>
+
+    <div class="section-title">Academics and experience</div>
+    <div class="grid g2">
+        <div><div th:replace="~{fragments/ui :: chart(${charts.get('cgpa')}, 'CGPA distribution')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${insights.get('cgpa')}">i</span></div></div>
+        <div><div th:replace="~{fragments/ui :: chart(${charts.get('dept')}, 'Students per department')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${insights.get('dept')}">i</span></div></div>
+        <div><div th:replace="~{fragments/ui :: chart(${charts.get('internship')}, 'Internship participation')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${insights.get('internship')}">i</span></div></div>
+        <div><div th:replace="~{fragments/ui :: chart(${charts.get('gaps')}, 'Most common skill gaps')}"></div>
+            <div class="insight"><b class="lead">What this means:</b> <span th:text="${insights.get('gaps')}">i</span></div></div>
+    </div>
+
+    <div class="section-title">Department summary</div>
+    <div class="tablewrap">
+        <table class="table">
+            <tr><th>Department</th><th>Students</th><th>Average readiness score</th><th>Average CGPA (4.0-eq.)</th><th>Job Ready</th></tr>
+            <tr th:each="d : ${depts}">
+                <td><b th:text="${d.department()}">d</b></td><td th:text="${d.students()}">n</td>
+                <td th:text="${@ui.one(d.averageScore())}">s</td><td th:text="${@ui.two(d.averageCgpa4())}">c</td>
+                <td th:text="${d.jobReady()}">j</td></tr>
+        </table>
+    </div>
+</div>
+
+<div class="section-title">Applications and job activity</div>
+<div class="grid g3">
+    <div th:replace="~{fragments/ui :: metric('Applications', ${totalApplications}, ${includeDemo ? 'Including demo applicants' : 'Registered applicants'})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Open listings', ${openJobs}, ${totalJobs + ' listings in total'})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Closed listings', ${totalJobs - openJobs}, '')}"></div>
+</div>
+<div class="grid g2">
+    <div><div th:replace="~{fragments/ui :: chart(${charts.get('status')}, 'Applications by status')}"></div></div>
+    <div><div th:replace="~{fragments/ui :: chart(${charts.get('activity')}, 'Listings by career category')}"></div></div>
+</div>
+<div th:if="${totalApplications > 0}">
+    <div th:replace="~{fragments/ui :: chart(${charts.get('perJob')}, 'Applications per listing')}"></div>
+    <div class="insight"><b class="lead">What this means:</b> <span th:text="${insights.get('perJob')}">i</span></div>
+</div>
+
+<div class="section-title">Downloads (CSV)</div>
+<div class="card">
+    <p>Exports contain no names, email addresses or phone numbers - students are identified only by an internal record id.</p>
+    <p class="row-start mt-s">
+        <a class="btn" th:href="@{/officer/reports/students.csv(demo=${includeDemo})}">Student readiness report</a>
+        <a class="btn" th:href="@{/officer/reports/skill-gaps.csv(demo=${includeDemo})}">Skill-gap report</a>
+        <a class="btn" th:href="@{/officer/reports/departments.csv(demo=${includeDemo})}">Department summary</a>
+    </p>
+</div>
+<p th:replace="~{fragments/ui :: disclaimer}"></p>
+</div>
+</body>
+</html>

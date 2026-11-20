@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Job details - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<p><a th:href="@{/student/jobs}">&larr; All jobs</a></p>
+<div class="page-head">
+    <div class="title" th:text="${job.title}">Job</div>
+    <div class="sub"><span th:text="${job.company}">Company</span> &middot; <span th:text="${job.location}">Remote</span></div>
+</div>
+<div class="grid g-3-2">
+    <div>
+        <div class="card">
+            <span class="badge b-violet" th:text="${job.category}">c</span>
+            <span class="badge b-info" th:text="${job.level}">l</span>
+            <span class="badge b-neutral" th:if="${job.demo}">Demo listing (fictional company)</span>
+            <span class="badge" th:classappend="${job.open} ? 'b-success' : 'b-danger'" th:text="${job.open ? 'Open' : 'Closed'}">Open</span>
+            <h4 class="mt">Description</h4>
+            <p style="white-space:pre-line" th:text="${job.description}">desc</p>
+            <h4 class="mt">Required skills</h4>
+            <span th:each="s : ${match.matched()}" class="badge b-success" th:text="${s}">s</span>
+            <span th:each="s : ${match.learning()}" class="badge b-warn" th:text="${s + ' (learning)'}">s</span>
+            <span th:each="s : ${match.missing()}" class="badge b-danger" th:text="${s + ' (missing)'}">s</span>
+            <p class="mt-s" th:if="${match.missing().isEmpty()}">You cover every listed skill.</p>
+            <p class="mt-s" th:unless="${match.missing().isEmpty()}"
+               th:text="'Skills you still need: ' + ${#strings.listJoin(match.missing(), ', ')} + '. Skill-Gap Analysis has tips for each.'">need</p>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <h4>Your skill match</h4>
+            <div class="metric"><div class="v" th:text="${match.percent()} + '%'">70%</div></div>
+            <div th:replace="~{fragments/ui :: progress(${match.percent()}, null, ${match.percent() >= 70 ? 'green' : ''})}"></div>
+            <p class="small">Required skills you are confident in count fully; skills you are learning count half.</p>
+            <h4 class="mt">How applications are ranked</h4>
+            <p class="small">Fit = 55% skill match + 25% resume keyword match + 20% readiness category points
+                (Job Ready 100, Developing 60, Needs Improvement 25). Your current readiness category is
+                <span class="badge" th:classappend="'b-' + ${readinessCategory.badge()}" th:text="${readinessCategory.label()}">c</span>.
+                The fit score only helps officers order their review - it is never an automatic decision.</p>
+        </div>
+    </div>
+</div>
+
+<section id="apply" class="card mt">
+    <h3>Apply for this job</h3>
+    <div class="notice info" th:if="${alreadyApplied}">You have already applied to this job.
+        <a th:href="@{/student/applications}">Track your application</a>.</div>
+    <div class="notice" th:if="${!alreadyApplied and !job.open}">This listing is closed and no longer accepts applications.</div>
+    <form th:if="${!alreadyApplied and job.open}" th:action="@{/student/jobs/{id}/apply(id=${job.id})}" method="post"
+          enctype="multipart/form-data" novalidate>
+        <p class="muted">Your profile (CGPA, skills and readiness category) is shared with the Career Office together
+            with this application. Fields marked <span class="req">*</span> are required.</p>
+        <div class="grid g2">
+            <div class="field"><label>Full name</label><input type="text" th:value="${student.name}" disabled></div>
+            <div class="field"><label>Email</label><input type="email" th:value="${student.email}" disabled></div>
+            <div class="field"><label for="ap-phone">Phone number <span class="req">*</span></label>
+                <input id="ap-phone" type="tel" name="phone" maxlength="20" required placeholder="+923001234567" th:value="${form.phone}"></div>
+            <div class="field"><label for="ap-av">Availability <span class="req">*</span></label>
+                <select id="ap-av" name="availability" required>
+                    <option value="">When can you start?</option>
+                    <option th:each="a : ${availability}" th:value="${a}" th:text="${a}" th:selected="${a == form.availability}">a</option>
+                </select></div>
+        </div>
+        <div class="field"><label for="ap-url">Portfolio, GitHub or LinkedIn link <span class="req">*</span></label>
+            <input id="ap-url" type="url" name="portfolioUrl" maxlength="200" required placeholder="https://github.com/yourname"
+                   th:value="${form.portfolioUrl}"></div>
+        <div class="field"><label for="ap-cover">Cover note <span class="req">*</span> <span class="hint">(50-1500 characters)</span></label>
+            <textarea id="ap-cover" name="coverNote" maxlength="1500" rows="5" required data-count="ap-cover-count"
+                      placeholder="Tell the Career Office why you are a good fit for this role..." th:text="${form.coverNote}"></textarea>
+            <div class="hint" id="ap-cover-count">0 / 1500</div></div>
+        <div class="field"><label for="ap-resume">Resume (PDF, max 5 MB) <span class="req">*</span></label>
+            <input id="ap-resume" type="file" name="resume" accept="application/pdf,.pdf" required>
+            <div class="hint">The file is stored securely and only Career Officers can open it. It is read as text, never executed.</div></div>
+        <div class="field"><label class="check"><input type="checkbox" name="consent" value="true" th:checked="${form.consent}">
+            I confirm my details are accurate and may be shared with the Career Office for this application.</label></div>
+        <button type="submit" class="btn primary" data-busy="Submitting...">Submit application</button>
+    </form>
+</section>
+</div>
+</body>
+</html>

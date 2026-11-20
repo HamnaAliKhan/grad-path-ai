@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/public :: layout(~{::title}, ~{::#page})}">
+<head><title>Access denied - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+    <header class="topnav"><a class="brand" href="/"><span th:replace="~{fragments/ui :: logo(36)}"></span><b>GradPath <i>AI</i></b></a></header>
+    <div class="card center" style="padding:2.5rem">
+        <span class="badge b-danger">403</span>
+        <div class="title mt-s">You can't open this page</div>
+        <p class="muted mt-s">This page belongs to a different account type, or the form you submitted has expired.
+            If you were submitting a form, go back, reload the page and try again.</p>
+        <p class="mt"><a class="btn primary" href="/">Go to my home page</a></p>
+    </div>
+</div>
+</body>
+</html>

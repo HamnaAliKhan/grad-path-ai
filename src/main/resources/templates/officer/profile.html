@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>My profile - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">My profile</div>
+    <div class="sub">Manage your name and Career Office details.</div>
+</div>
+<div class="grid g2">
+    <form class="card" th:action="@{/officer/profile}" method="post">
+        <div class="field"><label for="op-name">Full name <span class="req">*</span></label>
+            <input id="op-name" type="text" name="name" maxlength="80" required th:value="${officer.name}"></div>
+        <div class="field"><label>Email</label><input type="email" th:value="${officer.email}" disabled>
+            <div class="hint">Your sign-in email cannot be changed here.</div></div>
+        <div class="field"><label for="op-office">Office / organisation <span class="req">*</span></label>
+            <input id="op-office" type="text" name="office" maxlength="120" required th:value="${officer.office}"></div>
+        <button type="submit" class="btn primary">Save profile</button>
+    </form>
+    <div class="card">
+        <h4>Sign-in security</h4>
+        <p th:text="'You have ' + ${sessions} + ' active sign-in session(s).'">sessions</p>
+        <form th:action="@{/logout-all}" method="post" class="mt-s" data-confirm="Sign out of GradPath AI on every device, including this one?">
+            <button type="submit" class="btn danger small">Sign out of all devices</button>
+        </form>
+        <p class="muted small mt">Officer accounts can view student records. Use them only for Career Office work and do not
+            export personal data unnecessarily.</p>
+    </div>
+</div>
+</div>
+</body>
+</html>

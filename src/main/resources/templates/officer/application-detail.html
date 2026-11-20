@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Application review - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag" th:with="s=${app.student}, fit=${@ui.fit(app.fitScore)}">
+<p><a th:href="@{/officer/applications(job=${app.job.id})}">&larr; Applications for this listing</a></p>
+<div class="page-head row">
+    <div><div class="title" th:text="${s.name}">Name</div>
+        <div class="sub">Applied for <b th:text="${app.job.title}">job</b> at <span th:text="${app.job.company}">company</span> &middot;
+            <time th:attr="datetime=${@ui.iso(app.createdAt)}" th:text="${@ui.time(app.createdAt)}">t</time></div></div>
+    <div class="row-start">
+        <a class="btn" th:href="@{/officer/students/{id}(id=${s.id})}">Full student profile</a>
+        <a class="btn primary" th:if="${canMessage}" th:href="@{/messages/{id}(id=${s.id})}">Message candidate</a>
+    </div>
+</div>
+<div class="notice" th:if="${s.demo}">Fictional demonstration record - it cannot receive messages and has no resume file.</div>
+
+<div class="grid g4">
+    <div th:replace="~{fragments/ui :: metric('Fit score', ${app.fitScore + ' / 100'}, ${fit.label()})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Skill match', ${app.skillMatch + '%'}, 'Weight 55%')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Resume match', ${app.resumeMatch + '%'}, 'Weight 25%')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Readiness', ${app.readinessCategory}, ${'Score ' + @ui.points(app.readinessScore) + ' at application, weight 20%'})}"></div>
+</div>
+<p class="insight"><b class="lead">Calculation:</b> <span th:text="${fitExplanation}">calc</span>. A ranking aid only - not a hiring decision.</p>
+
+<div class="grid g2">
+    <div class="card">
+        <h4>Update status</h4>
+        <form th:action="@{/officer/applications/{id}/status(id=${app.id})}" method="post" class="row-start">
+            <label for="st" class="sr-only">Status</label>
+            <select id="st" name="status" style="max-width:240px">
+                <option th:each="x : ${statuses}" th:value="${x}" th:text="${x}" th:selected="${x == app.status}">s</option>
+            </select>
+            <button type="submit" class="btn primary">Save status</button>
+        </form>
+        <p class="muted small mt-s">Current: <span class="badge" th:classappend="'b-' + ${@ui.statusKind(app.status)}" th:text="${app.status}">s</span>
+            <span th:if="${app.updatedAt != null}">updated <time th:attr="datetime=${@ui.iso(app.updatedAt)}" th:text="${@ui.time(app.updatedAt)}">t</time></span></p>
+    </div>
+    <div class="card">
+        <h4>Shared by the applicant</h4>
+        <dl class="facts">
+            <div><dt>Email</dt><dd th:text="${s.email}">e</dd></div>
+            <div><dt>Phone</dt><dd th:text="${app.phone != '' ? app.phone : '-'}">p</dd></div>
+            <div><dt>Availability</dt><dd th:text="${app.availability}">a</dd></div>
+            <div><dt>Link</dt><dd><a th:href="${app.portfolioUrl}" th:text="${app.portfolioUrl}" target="_blank"
+                                     rel="noopener noreferrer nofollow">link</a></dd></div>
+            <div><dt>University</dt><dd th:text="${s.university}">u</dd></div>
+            <div><dt>Target career</dt><dd th:text="${s.targetCareer}">c</dd></div>
+        </dl>
+    </div>
+</div>
+
+<div class="card">
+    <h4>Skills</h4>
+    <p><b>Confident</b></p><div th:replace="~{fragments/ui :: badges(${s.skillList()}, 'violet')}"></div>
+    <p class="mt-s"><b>Learning</b></p><div th:replace="~{fragments/ui :: badges(${s.learningList()}, 'warn')}"></div>
+    <p class="mt-s"><b>Required by the listing</b></p><div th:replace="~{fragments/ui :: badges(${app.job.skillList()}, 'info')}"></div>
+</div>
+<div class="card"><h4>Cover note</h4><p style="white-space:pre-line;color:var(--text)" th:text="${app.coverNote}">note</p></div>
+
+<div class="card">
+    <h4>Resume</h4>
+    <div th:if="${hasResume}">
+        <p class="row-start">
+            <a class="btn" th:href="@{/officer/applications/{id}/resume(id=${app.id})}" target="_blank" rel="noopener">Open PDF in a new tab</a>
+            <a class="btn" th:href="@{/officer/applications/{id}/resume(id=${app.id},download=true)}">Download PDF</a>
+        </p>
+        <details class="mt-s"><summary>Preview the PDF here</summary>
+            <iframe th:src="@{/officer/applications/{id}/resume(id=${app.id})}" title="Resume preview"
+                    style="width:100%;height:640px;border:1px solid var(--border);border-radius:12px;margin-top:.6rem;background:#fff"></iframe>
+        </details>
+    </div>
+    <p class="muted" th:unless="${hasResume}">No PDF file is stored for this fictional application.</p>
+    <details class="mt-s"><summary>Extracted resume text (used for keyword matching)</summary>
+        <p class="small" style="white-space:pre-line" th:text="${app.resumeText}">text</p></details>
+</div>
+</div>
+</body>
+</html>

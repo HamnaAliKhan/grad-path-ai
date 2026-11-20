@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Students - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Student directory</div>
+    <div class="sub">Review onboarded students and their rule-based readiness. Contact details are shown only after a student applies.</div>
+</div>
+<form method="get" th:action="@{/officer/students}" class="filters card" role="search">
+    <div><label for="sq">Search by name or target career</label>
+        <input id="sq" type="search" name="q" maxlength="80" th:value="${q}"></div>
+    <div><label for="sd">Department</label>
+        <select id="sd" name="department" data-autosubmit>
+            <option value="All">All</option>
+            <option th:each="d : ${departments}" th:value="${d}" th:text="${d}" th:selected="${d == department}">d</option>
+        </select></div>
+    <div><label for="sdemo">Records</label>
+        <select id="sdemo" name="demo" data-autosubmit>
+            <option value="true" th:selected="${includeDemo}">Registered + demo</option>
+            <option value="false" th:selected="${!includeDemo}">Registered only</option>
+        </select></div>
+    <div><button class="btn primary" type="submit">Search</button></div>
+</form>
+<div th:if="${students.isEmpty()}">
+    <div th:replace="~{fragments/ui :: empty('No students found', 'Try another search, or wait for students to complete onboarding.')}"></div>
+</div>
+<div class="tablewrap" th:unless="${students.isEmpty()}">
+    <table class="table">
+        <tr><th>Student</th><th>Department</th><th>CGPA</th><th>Target career</th><th>Readiness</th><th>Projects</th><th>Internships</th><th>Source</th><th></th></tr>
+        <tr th:each="row : ${students}" th:with="s=${row.student()}, r=${row.result()}">
+            <td><b th:text="${s.name}">Name</b></td>
+            <td th:text="${s.department}">CS</td>
+            <td class="nowrap" th:text="${@ui.two(s.cgpa) + ' / ' + @ui.scale(s.cgpaScale)}">3.3</td>
+            <td th:text="${s.targetCareer}">career</td>
+            <td class="nowrap"><b th:text="${r.scoreLabel()}">62</b>
+                <span class="badge" th:classappend="'b-' + ${r.category().badge()}" th:text="${r.category().label()}">c</span>
+                <span class="badge b-warn" th:if="${r.preliminary()}">Preliminary</span></td>
+            <td th:text="${s.projects}">3</td>
+            <td th:text="${s.internships}">1</td>
+            <td><span class="badge" th:classappend="${s.demo} ? 'b-neutral' : 'b-violet'" th:text="${s.demo ? 'Demo (fictional)' : 'Registered'}">src</span></td>
+            <td><a class="btn small" th:href="@{/officer/students/{id}(id=${s.id})}">Review</a></td>
+        </tr>
+    </table>
+</div>
+</div>
+</body>
+</html>

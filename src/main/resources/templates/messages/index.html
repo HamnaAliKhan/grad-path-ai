@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Messages - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title">Messages</div>
+    <div class="sub" th:text="'Talk directly with ' + (${me.isOfficer()} ? 'students' : 'the Career Office') + ' inside GradPath AI.'">sub</div>
+</div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,2.2fr)">
+    <div>
+        <div class="card">
+            <h4>Conversations</h4>
+            <a class="conv" th:each="c : ${conversations}" th:href="@{/messages/{id}(id=${c.partnerId()})}"
+               th:classappend="${partner != null and partner.id == c.partnerId()} ? 'active'">
+                <div class="row"><b th:text="${c.name()}">Name</b>
+                    <span class="count" th:if="${c.unread() > 0}" th:text="${c.unread() + ' new'}">1</span></div>
+                <div class="last" th:text="${c.last()}">last</div>
+                <div class="muted small"><span th:text="${c.role()}">role</span> &middot;
+                    <time th:attr="datetime=${@ui.iso(c.time())}" th:text="${@ui.time(c.time())}">t</time></div>
+            </a>
+            <p class="muted" th:if="${conversations.isEmpty()}">No conversations yet.</p>
+        </div>
+        <div class="card">
+            <h4>Start a new conversation</h4>
+            <form th:if="${!contacts.isEmpty()}" th:action="@{/messages/start}" method="post">
+                <label for="m-to" class="sr-only">Send to</label>
+                <select id="m-to" name="recipient" required>
+                    <option value="">Choose a person</option>
+                    <option th:each="c : ${contacts}" th:value="${c.id()}" th:text="${c.label()}">Person</option>
+                </select>
+                <button type="submit" class="btn small mt-s">Open chat</button>
+            </form>
+            <p class="muted" th:if="${contacts.isEmpty()}"
+               th:text="${me.demo()} ? 'Demo accounts can only message other demo accounts.' : 'Nobody to message yet.'">none</p>
+        </div>
+    </div>
+    <div>
+        <div th:if="${partner == null}">
+            <div th:replace="~{fragments/ui :: empty('No conversation selected', 'Pick a conversation on the left, or start a new one.')}"></div>
+        </div>
+        <div class="card" th:if="${partner != null}">
+            <div class="row">
+                <div class="row-start"><div class="avatar" th:text="${@ui.initials(partner.name)}">AB</div>
+                    <div><b th:text="${partner.name}">Name</b><br>
+                        <span class="badge" th:classappend="${partner.role.name() == 'OFFICER'} ? 'b-violet' : 'b-info'"
+                              th:text="${partner.displayRole()}">role</span>
+                        <span class="badge b-neutral" th:if="${partner.demo}">Demo account</span></div></div>
+                <button type="button" class="btn small" id="thread-refresh">Refresh</button>
+            </div>
+            <div id="thread" class="chatbox mt" th:attr="data-url=${partner != null} ? @{/messages/{id}/thread(id=${partner.id})} : null"
+                 aria-live="polite" th:fragment="thread">
+                <div class="bubble" th:each="m : ${thread}" th:classappend="${m.senderId == me.id()} ? 'me' : 'them'">
+                    <span th:text="${m.body}">body</span>
+                    <small><time th:attr="datetime=${@ui.iso(m.createdAt)}" th:text="${@ui.time(m.createdAt)}">t</time>
+                        <span th:if="${m.senderId == me.id()}" th:text="${m.read ? ' · Read' : ' · Sent'}">Sent</span></small>
+                </div>
+                <p class="muted" th:if="${thread.isEmpty()}">No messages yet. Say hello below.</p>
+            </div>
+            <form id="composer" th:if="${canReply}" th:action="@{/messages/{id}(id=${partner.id})}" method="post" class="mt">
+                <label for="m-body" class="sr-only">Message</label>
+                <textarea id="m-body" name="body" rows="3" maxlength="1500" required data-count="m-body-count"
+                          placeholder="Write a message..." th:text="${draft}"></textarea>
+                <div class="row"><span class="hint" id="m-body-count">0 / 1500</span>
+                    <button type="submit" class="btn primary" data-busy="Sending...">Send message</button></div>
+            </form>
+            <p class="muted mt" th:unless="${canReply}">You can no longer reply in this conversation.</p>
+        </div>
+    </div>
+</div>
+<script defer th:src="@{/js/messages.js}"></script>
+</div>
+</body>
+</html>

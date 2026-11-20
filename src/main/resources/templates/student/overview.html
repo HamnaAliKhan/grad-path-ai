@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:replace="~{layouts/app :: layout(~{::title}, ~{::#page})}">
+<head><title>Overview - GradPath AI</title></head>
+<body>
+<div id="page" th:remove="tag">
+<div class="page-head">
+    <div class="title" th:text="'Welcome back, ' + ${student.firstName()} + '!'">Welcome back!</div>
+    <div class="sub">Small steps today can open bigger opportunities tomorrow.</div>
+</div>
+
+<div class="notice info row" th:if="${unreadCount > 0}">
+    <span th:text="'You have ' + ${unreadCount} + ' unread message' + (${unreadCount} == 1 ? '' : 's') + ' from the Career Office.'">Unread</span>
+    <a class="btn primary small" th:href="@{/messages}">Open messages</a>
+</div>
+<div class="notice" th:if="${result.preliminary()}">
+    <b>Preliminary result.</b> Your profile is <span th:text="${completion.percent()} + '%'">40%</span> complete, so the
+    readiness score is not yet reliable. Missing: <span th:text="${#strings.listJoin(completion.missing(), ', ')}">items</span>.
+</div>
+
+<div class="card row">
+    <div style="flex:1;min-width:220px">
+        <div th:replace="~{fragments/ui :: progress(${completion.percent()}, 'Profile completion', '')}"></div>
+    </div>
+    <a class="btn" th:href="@{/student/profile/edit}">Update profile</a>
+</div>
+
+<div class="grid g4">
+    <div th:replace="~{fragments/ui :: metric('CGPA', ${@ui.two(student.cgpa)}, ${'Out of ' + @ui.scale(student.cgpaScale)})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Projects completed', ${student.projects}, 'Portfolio projects')}"></div>
+    <div th:replace="~{fragments/ui :: metric('Internships', ${student.internships}, ${student.workExperienceMonths + ' month(s) work experience'})}"></div>
+    <div th:replace="~{fragments/ui :: metric('Readiness score', ${result.scoreLabel() + ' / 100'}, ${result.category().label()})}"></div>
+</div>
+
+<div class="grid g-3-2 mt">
+    <div>
+        <div class="accent">
+            <div style="opacity:.85;font-weight:600">Placement readiness (rule-based)</div>
+            <div class="big"><span th:text="${result.scoreLabel()}">62</span><span style="font-size:1.3rem"> / 100</span></div>
+            <div class="mt-s"><b th:text="${result.category().label()}">Developing</b>
+                <span th:if="${result.preliminary()}"> &middot; Preliminary</span></div>
+            <p th:text="${result.strengths().size()} + ' strong factor(s) and ' + ${result.weaknesses().size()} + ' area(s) to improve. ' + ${result.category().meaning()}">text</p>
+        </div>
+        <a class="btn primary" th:href="@{/student/readiness}">View full analysis</a>
+
+        <div class="section-title">Strengths and improvement areas</div>
+        <div class="grid g2">
+            <div class="card">
+                <h4>Strengths</h4>
+                <ul class="list" th:if="${!result.strengths().isEmpty()}">
+                    <li th:each="f : ${result.strengths()}"><b th:text="${f.name()}">CGPA</b>
+                        <span class="muted" th:text="${@ui.points(f.points()) + ' / ' + @ui.points(f.maxPoints()) + ' points'}">24/30</span></li>
+                </ul>
+                <p th:if="${result.strengths().isEmpty()}">No factor is strong yet - small improvements add up quickly.</p>
+            </div>
+            <div class="card">
+                <h4>Improvement areas</h4>
+                <ul class="list" th:if="${!result.weaknesses().isEmpty()}">
+                    <li th:each="f : ${result.weaknesses()}"><b th:text="${f.name()}">Projects</b>
+                        <span class="muted" th:text="${@ui.points(f.points()) + ' / ' + @ui.points(f.maxPoints()) + ' points'}">4/20</span></li>
+                </ul>
+                <p th:if="${result.weaknesses().isEmpty()}">No major weak areas detected.</p>
+            </div>
+        </div>
+
+        <div class="section-title">Skills overview</div>
+        <div class="card">
+            <p><b>Current skills</b></p>
+            <div th:replace="~{fragments/ui :: badges(${student.skillList()}, 'violet')}"></div>
+            <p class="mt-s"><b>Strongest categories</b></p>
+            <div th:each="c : ${skillCategories}">
+                <div th:replace="~{fragments/ui :: progress(${100.0 * c.value[0] / c.value[1]}, ${c.key + ' (' + c.value[0] + '/' + c.value[1] + ')'}, 'green')}"></div>
+            </div>
+            <p class="muted" th:if="${skillCategories.isEmpty()}">Add skills in your profile.</p>
+            <p class="mt-s"><b th:text="'Skills to improve for ' + ${gap.career().name()}">Skills to improve</b></p>
+            <span th:each="r : ${gap.priorities()}" class="badge" th:classappend="'b-' + ${@ui.skillKind(r.status())}"
+                  th:text="${r.skill()}">SQL</span>
+            <span class="muted" th:if="${gap.priorities().isEmpty()}">You cover every listed example skill.</span>
+            <p class="mt-s"><b>Progress toward career goals</b></p>
+            <div th:replace="~{fragments/ui :: progress(${goalSummary.progress()}, ${goalSummary.done() + '/' + goalSummary.total() + ' tasks done'}, '')}"></div>
+        </div>
+
+        <div class="section-title">Recommended next steps</div>
+        <div class="card">
+            <ul class="list" th:if="${!actions.isEmpty()}">
+                <li th:each="a, st : ${actions}"><b th:text="${st.count + '. ' + a.title()}">Title</b><br>
+                    <span class="muted" th:text="${a.detail()}">detail</span>
+                    <a class="small" th:href="@{${a.link()}}">Go</a></li>
+            </ul>
+            <p th:if="${actions.isEmpty()}">You are in a strong position. Keep your goals and projects up to date.</p>
+        </div>
+    </div>
+
+    <div>
+        <div class="section-title" style="margin-top:0">Top matching opportunities</div>
+        <p class="muted small">Ranked by your skill match. Listings marked "Demo" are fictional.</p>
+        <div class="card" th:each="rj : ${topJobs}">
+            <div class="row"><a th:href="@{/student/jobs/{id}(id=${rj.job().id})}"><b th:text="${rj.job().title}">Job</b></a>
+                <span class="badge" th:classappend="'b-' + ${@ui.matchKind(rj.match().percent())}"
+                      th:text="${rj.match().percent() + '% match'}">70%</span></div>
+            <p><span th:text="${rj.job().company}">Company</span> &middot; <span th:text="${rj.job().level}">Junior</span>
+                <span class="badge b-neutral" th:if="${rj.job().demo}">Demo</span></p>
+        </div>
+        <div th:if="${topJobs.isEmpty()}"><div th:replace="~{fragments/ui :: empty('No open jobs yet', 'New listings from the Career Office will appear here.')}"></div></div>
+        <a class="btn" th:href="@{/student/jobs}">Browse all jobs</a>
+
+        <div class="section-title">My applications</div>
+        <div class="card" style="padding:.7rem 1rem" th:each="a : ${applications}">
+            <div class="row"><b th:text="${a.job.title}">Job</b>
+                <span class="badge" th:classappend="'b-' + ${@ui.statusKind(a.status)}" th:text="${a.status}">Submitted</span></div>
+            <span class="muted" th:text="${a.job.company}">Company</span>
+        </div>
+        <p class="muted" th:if="${applications.isEmpty()}">You haven't applied to any jobs yet.</p>
+        <a class="btn" th:href="@{/student/applications}">Track applications</a>
+
+        <div class="section-title">Recent activity</div>
+        <div class="card">
+            <ul class="list" th:if="${!activity.isEmpty()}">
+                <li th:each="a : ${activity}"><b th:text="${a.action}">Action</b>
+                    <span class="muted"><span th:text="${a.detail}">detail</span> &middot;
+                        <time th:attr="datetime=${@ui.iso(a.createdAt)}" th:text="${@ui.time(a.createdAt)}">time</time></span></li>
+            </ul>
+            <p th:if="${activity.isEmpty()}">No activity yet. Update your profile to get started.</p>
+        </div>
+    </div>
+</div>
+<p th:replace="~{fragments/ui :: disclaimer}"></p>
+</div>
+</body>
+</html>
