@@ -10,10 +10,11 @@ COPY src src
 RUN ./mvnw -q -B -DskipTests package
 
 FROM eclipse-temurin:21-jre
-RUN useradd --system --uid 10001 gradpath
 WORKDIR /app
 COPY --from=build /src/target/gradpath-ai.jar app.jar
-USER gradpath
+# Run as an unprivileged user. UID 1000 already exists in the Ubuntu base image and is the UID that
+# Hugging Face Spaces uses, so the same image works there, on Render and with plain Docker.
+USER 1000:1000
 ENV GRADPATH_DOTENV=false
 EXPOSE 8080
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]
