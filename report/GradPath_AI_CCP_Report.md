@@ -7,7 +7,7 @@ Technology: Java 21, Spring Boot 3.4, Thymeleaf, Neon PostgreSQL, Flyway, Apache
 
 > Note for the group: replace the screenshot placeholders in Section 5 with screenshots taken from the running system
 > during your lab demonstration. All diagrams in Section 4 are generated from `report/uml/*.puml` and match the code in
-> `src/main/java` exactly.
+> `backend/src/main/java` exactly.
 
 ---
 
@@ -77,7 +77,7 @@ The implementation is a layered Spring Boot web application:
 
 | Layer | Package | Responsibility |
 |---|---|---|
-| Presentation | `web`, `templates`, `static` | Thin Spring MVC controllers, Thymeleaf pages, Plotly chart specifications |
+| Presentation | `web` (backend), `frontend/templates`, `frontend/static` | Thin Spring MVC controllers, Thymeleaf pages, Plotly chart specifications |
 | Security | `security`, `config.SecurityConfig` | Session-cookie authentication, CSRF, role rules, BCrypt, login throttling |
 | Business logic | `service`, `service.assistant` | Profiles, readiness history, recommendations, jobs, applications, resumes, goals, messages, reports, assistant |
 | Rule engine | `readiness` | The 60 readiness rules |
@@ -194,7 +194,8 @@ officer's student review page, and an **About the Model** page shows the metrics
 
 ### 4.14 Data and security design
 
-* **Database:** Neon PostgreSQL. Flyway migration V1 matches the earlier schema (so the existing database is
+* **Database:** Neon PostgreSQL is the only database; the application runs locally and connects to Neon over TLS.
+  Integration tests use a separate Neon *test branch*, and every test is rolled back. Flyway migration V1 matches the earlier schema (so the existing database is
   baselined), V2 adds columns, indexes, foreign keys and check constraints without deleting data. Unique email,
   unique (job, student) application, cascading goal/task deletion.
 * **Security:** BCrypt password hashes (legacy hashes upgraded on sign-in), generic sign-in errors and throttling,
@@ -260,7 +261,8 @@ and the weighting of the rule engine.
 
 ### 5.3 Test results
 
-`./mvnw test` - **190 tests, 0 failures, 0 errors**.
+`./mvnw test` - **190 tests, 0 failures, 0 errors**. The database tests run on a separate Neon test branch
+(`TEST_DATABASE_URL`), never on the live data, and each one is rolled back.
 
 | Test class | Focus |
 |---|---|

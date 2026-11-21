@@ -15,10 +15,10 @@ and applications, manage job listings, communicate with students and view report
 | Area | Technology |
 |---|---|
 | Language / framework | Java 21, Spring Boot 3.4 (Spring MVC, Spring Security, Spring Data JPA) |
-| User interface | Thymeleaf server-side templates, HTML, CSS (dark-blue GradPath design system), vanilla JavaScript |
+| User interface | Thymeleaf server-side templates, HTML, CSS (light GradPath design system), vanilla JavaScript - in `frontend/` |
 | Charts | Plotly.js 2.35 (loaded from cdnjs with Subresource Integrity) |
-| Database | Neon PostgreSQL (hosted); H2 in PostgreSQL mode for local development and tests |
-| Persistence / migrations | JPA / Hibernate, Flyway (`src/main/resources/db/migration`) |
+| Database | Neon PostgreSQL (the only database; the app runs locally and connects to Neon) |
+| Persistence / migrations | JPA / Hibernate, Flyway (`backend/src/main/resources/db/migration`) |
 | Resume text extraction | Apache PDFBox 3 |
 | Passwords | BCrypt (Spring Security Crypto) |
 | Career assistant | Built-in deterministic rule-based assistant; optional Groq / OpenAI / Gemini / Anthropic |
@@ -114,46 +114,61 @@ UML diagrams (PlantUML sources and PNGs) and the CCP report draft are in [`repor
 
 ## Project structure
 
+The code is split into a **backend** (Java) and a **frontend** (pages, styles, scripts). One Maven build at the root
+packages both into a single application; Maven copies `frontend/templates` and `frontend/static` onto the classpath
+(see the `<build>` section of `pom.xml`).
+
 ```text
-src/main/java/ai/gradpath/
-  config/      settings (GradPathProperties), .env loader, Neon datasource, security, demo seeder, start-up
-  domain/      JPA entities
-  readiness/   rule engine (60 rules)
-  ml/          placement model (dataset, logistic regression, trainer, metrics, model file, train-model command)
-  reference/   career catalog
-  repository/  Spring Data repositories
-  security/    session filter, cookies, password hashing, login throttle, onboarding gate
-  service/     business services (+ service/assistant)
-  validation/  input validators
-  web/         controllers, view helpers, chart specifications
-src/main/resources/
-  db/migration/   Flyway migrations (V1 baseline, V2 additive)
-  ml/             placement-model.json (bundled trained model)
+backend/                      Java code, configuration and tests
+  src/main/java/ai/gradpath/
+    config/       settings (GradPathProperties), .env loader, Neon datasource, security, demo seeder, start-up
+    domain/       JPA entities
+    readiness/    rule engine (60 rules)
+    ml/           placement model (dataset, logistic regression, trainer, metrics, model file, train-model command)
+    reference/    career catalog
+    repository/   Spring Data repositories
+    security/     session filter, cookies, password hashing, login throttle, onboarding gate
+    service/      business services (+ service/assistant)
+    validation/   input validators
+    web/          controllers, view helpers, chart specifications
+  src/main/resources/
+    application.properties    settings (values come from .env)
+    db/migration/             Flyway migrations (V1 baseline, V2 additive)
+    ml/placement-model.json   bundled trained placement model
+  src/test/                   JUnit tests (unit tests + integration tests on a Neon test branch)
+frontend/                     user interface
   templates/      Thymeleaf pages, layouts and fragments
   static/         css/app.css, js/*.js, favicon
-src/test/java/    JUnit tests (unit + integration on in-memory H2)
-report/           UML diagrams and CCP report draft
+report/                       UML diagrams and CCP report draft
+pom.xml, mvnw, mvnw.cmd, .mvn/  Maven build and wrapper
+.env.example                  template for the git-ignored .env file
 ```
+
+`target/` is created by Maven when you build or run the app (compiled classes, `gradpath-ai.jar`, test reports). It is
+git-ignored, can be deleted at any time, and is recreated on the next build.
 
 ## Setup
 
+The app runs locally on your computer and uses **Neon PostgreSQL** as its only database.
+
 ### Prerequisites
 * Java 21 (JDK), e.g. Eclipse Temurin. Maven is **not** required - the Maven wrapper (`mvnw`) downloads it.
-* A Neon PostgreSQL database for the hosted setup (optional for local development).
+* A Neon PostgreSQL database (required). For the integration tests, also a Neon **test branch** (see Tests).
 
-### Configuration (environment variables)
+### Configuration (`.env`)
 
-Copy `.env.example` to `.env` (git-ignored) for local use, or set the same names as environment variables /
-deployment secrets. Real environment variables override `.env`. Secrets are never logged.
+Copy `.env.example` to `.env` (git-ignored) and fill in the values. Real environment variables override `.env`.
+Secrets are never logged.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `DATABASE_URL` | Neon connection string (`postgresql://user:password@host/db?sslmode=require`) or a `jdbc:postgresql://` URL. Empty = local H2 file `data/local/gradpath` | empty |
+| `DATABASE_URL` | **Required.** Neon connection string (`postgresql://user:password@host/db?sslmode=require`) or a `jdbc:postgresql://` URL. The app stops with a clear message when it is missing | - |
+| `TEST_DATABASE_URL` | Connection string of a separate Neon branch used only by the integration tests | empty (database tests skipped) |
 | `OFFICER_ACCESS_CODE` | Code required for Career Officer registration. Empty disables officer registration | empty |
-| `ENABLE_DEMO_LOGIN` | Allow the public demo accounts to sign in (keep `false` in public deployments) | `false` |
+| `ENABLE_DEMO_LOGIN` | Allow the public demo accounts to sign in (keep `false` unless you are demonstrating) | `false` |
 | `SEED_DEMO_DATA` | Insert missing fictional demo records at start-up (never overwrites or deletes data) | `false` |
 | `CGPA_SCALE` | Default grading scale for new students (4.0, 5.0 or 10.0) | `4.0` |
-| `COOKIE_SECURE` | Always mark the session cookie `Secure` (set `true` behind HTTPS) | `false` |
+| `COOKIE_SECURE` | Always mark the session cookie `Secure`. Keep `false` for `http://localhost`; set `true` only if the app is served over HTTPS | `false` |
 | `CHATBOT_PROVIDER` | `rule`, `groq`, `openai`, `gemini` or `anthropic` | `rule` |
 | `GROQ_API_KEY`, `GROQ_MODEL` (and `OPENAI_*`, `GEMINI_*`, `ANTHROPIC_*`) | Optional AI provider credentials | empty |
 | `PLACEMENT_MODEL_PATH` | Optional placement model file produced by `train-model`; empty = the model bundled in the jar | empty |
@@ -161,7 +176,7 @@ deployment secrets. Real environment variables override `.env`. Secrets are neve
 
 ### Neon database
 1. Create a Neon project and copy its connection string from the Neon console.
-2. Set `DATABASE_URL` (in `.env` locally, or as a deployment secret).
+2. Set `DATABASE_URL` in `.env`.
 3. Start the app. Flyway runs automatically:
    * a new, empty database gets the full schema (V1 + V2);
    * an existing GradPath database (created by the earlier version) is **baselined** at V1 and receives only the
@@ -176,8 +191,8 @@ deployment secrets. Real environment variables override `.env`. Secrets are neve
 # then open http://localhost:8080
 ```
 
-or build a jar: `./mvnw -DskipTests package` and `java -jar target/gradpath-ai.jar`.
-Container: `docker build -t gradpath-ai .` then `docker run -p 8080:8080 -e DATABASE_URL=... -e OFFICER_ACCESS_CODE=... -e COOKIE_SECURE=true gradpath-ai`.
+or build a jar: `./mvnw -DskipTests package` and `java -jar target/gradpath-ai.jar` (run it from the project folder
+so it finds `.env`).
 
 ### Demo accounts (local evaluation only)
 With `SEED_DEMO_DATA=true` and `ENABLE_DEMO_LOGIN=true` the landing page shows a **Quick demo** tab:
@@ -188,22 +203,31 @@ only message other demo accounts. When demo login is disabled, demo passwords ar
 ### Tests
 
 ```bash
-./mvnw test
+./mvnw test          # Windows: mvnw.cmd test
 ```
 
-167 tests cover: every rule-tier boundary, rules 58-60, score limits and all three categories, input validation,
+**Database for tests.** Integration tests never use your real database. They run against a separate Neon branch, and
+every test is rolled back, so nothing is kept even there:
+
+1. In the Neon console open your project, then **Branches → Create branch**, name it `test`, with `main` as the parent.
+2. Copy the `test` branch's connection string and add it to `.env` as `TEST_DATABASE_URL=...`.
+
+Without `TEST_DATABASE_URL` the database tests are reported as *skipped* and all other tests still run. The app
+itself never reads `TEST_DATABASE_URL`, and the tests never read `DATABASE_URL` or any AI key.
+
+The tests cover: every rule-tier boundary, rules 58-60, score limits and all three categories, input validation,
 password hashing and legacy upgrade, login throttling and generic errors, registration and the officer access code,
 revocable sessions, role-based access to every page, CSRF, cookies, onboarding gate, skill matching, job-fit formula
 and labels, PDF resume extraction and analysis, application validation / duplicates / closed jobs, job ownership,
 goal progress and ownership, messaging rules, profile validation, readiness history, the what-if endpoint (never
-saved), the career assistant (deterministic answers, PII redaction, AI fallback) and the Flyway migrations.
-Tests use an in-memory H2 database and never read `.env`, so they cannot reach Neon or an AI provider.
+saved), the career assistant (deterministic answers, PII redaction, AI fallback), the placement model and the
+Flyway migrations.
 
 ## Placement model (secondary estimate, pure Java)
 
 The 60-rule score is the **official** readiness measure: it alone sets the category and the readiness part of job
 fit. Next to it, a logistic-regression model gives a **secondary, data-driven estimate** of the chance of placement,
-with a per-feature explanation. It is written, trained and evaluated in plain Java (`src/main/java/ai/gradpath/ml`) -
+with a per-feature explanation. It is written, trained and evaluated in plain Java (`backend/src/main/java/ai/gradpath/ml`) -
 no Python, no ML library.
 
 | Step | What happens |
@@ -214,7 +238,7 @@ no Python, no ML library.
 | Algorithm | Logistic regression trained with Newton's method (IRLS) - deterministic, converges in a few iterations. |
 | Threshold | The probability that maximises F1 on the out-of-fold predictions. |
 | Evaluation | Once, on the test rows: ROC-AUC, accuracy, precision, recall, F1, Brier score, log loss, confusion matrix, ROC and calibration curves. |
-| Output | `src/main/resources/ml/placement-model.json` - coefficients and metrics only, no student data. |
+| Output | `backend/src/main/resources/ml/placement-model.json` - coefficients and metrics only, no student data. |
 
 **The bundled model is a practice model trained on synthetic data**, because the Kaggle `placement.csv` is not in the
 repository (licence) - the UI labels it "Practice model" everywhere. To train on real data:

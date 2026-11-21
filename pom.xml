@@ -15,7 +15,7 @@
     <artifactId>gradpath-ai</artifactId>
     <version>2.0.0</version>
     <name>GradPath AI</name>
-    <description>Graduate Career Placement Prediction System - Java web application (Spring Boot, Thymeleaf, rule-based readiness)</description>
+    <description>Graduate Career Placement Prediction System - Java web application (Spring Boot, Thymeleaf, rule-based readiness, Neon PostgreSQL)</description>
 
     <properties>
         <java.version>21</java.version>
@@ -61,12 +61,6 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- Local development / test database (PostgreSQL compatibility mode). -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
 
         <!-- Resume PDF text extraction (text only - uploaded files are never executed). -->
         <dependency>
@@ -89,6 +83,28 @@
 
     <build>
         <finalName>gradpath-ai</finalName>
+        <!-- Project layout: backend/ holds the Java code, configuration and tests; frontend/ holds the
+             Thymeleaf templates and static files, which are packaged as classpath:/templates and classpath:/static. -->
+        <sourceDirectory>backend/src/main/java</sourceDirectory>
+        <testSourceDirectory>backend/src/test/java</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>backend/src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>frontend/templates</directory>
+                <targetPath>templates</targetPath>
+            </resource>
+            <resource>
+                <directory>frontend/static</directory>
+                <targetPath>static</targetPath>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>backend/src/test/resources</directory>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -102,7 +118,8 @@
                         <include>**/*Test.java</include>
                         <include>**/*IT.java</include>
                     </includes>
-                    <!-- Tests never read .env, so they can never reach the live Neon database or an AI provider. -->
+                    <!-- The app never loads .env during tests, so tests cannot reach the live database (DATABASE_URL)
+                         or an AI provider. Database tests read only TEST_DATABASE_URL (a separate Neon branch). -->
                     <environmentVariables>
                         <GRADPATH_DOTENV>false</GRADPATH_DOTENV>
                         <DATABASE_URL></DATABASE_URL>
