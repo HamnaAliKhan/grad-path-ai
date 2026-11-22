@@ -1,0 +1,69 @@
+@startuml 03b_class_rule_engine
+!pragma layout smetana
+title GradPath AI - Class Diagram: readiness rule engine (Template Method, Composite-style aggregation)
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F8FAFF
+  BorderColor #6366F1
+}
+hide empty members
+
+package "readiness (Template Method)" {
+  class ReadinessRuleEngine <<Singleton bean>> {
+    + VERSION = "rules-1.0"
+    + evaluate(p : ProfileSnapshot) : ReadinessResult
+    + validate(p : ProfileSnapshot)
+    + rules() : List<RuleDefinition>
+  }
+  abstract class FactorScorer {
+    - key, name : String
+    - maxPoints : double
+    - tiers : List<TierRule>
+    + score(p) : FactorResult {final}
+    # {abstract} measure(p) : double
+    # {abstract} describe(p, v) : String
+    # {abstract} advice(p, points) : String
+    # adjust(p, r) : FactorResult
+  }
+  class CgpaScorer
+  class ProjectScorer
+  class ExperienceScorer {
+    # adjust(p, r) : FactorResult
+  }
+  class SkillScorer
+  class CertificationScorer
+  class CommunicationScorer
+  class ExtracurricularScorer
+  class TierRule <<record>> {
+    number; lower; upper; points
+    + matches(v) : boolean
+  }
+  class ProfileSnapshot <<record>>
+  class ReadinessResult <<record>> {
+    score; category; preliminary
+    + strengths(); weaknesses()
+  }
+  class FactorResult <<record>>
+  enum ReadinessCategory {
+    NEEDS_IMPROVEMENT
+    DEVELOPING
+    JOB_READY
+    + forScore(s)
+  }
+}
+
+FactorScorer <|-- CgpaScorer
+FactorScorer <|-- ProjectScorer
+FactorScorer <|-- ExperienceScorer
+FactorScorer <|-- SkillScorer
+FactorScorer <|-- CertificationScorer
+FactorScorer <|-- CommunicationScorer
+FactorScorer <|-- ExtracurricularScorer
+ReadinessRuleEngine "1" *-- "7" FactorScorer
+FactorScorer "1" *-- "many" TierRule
+ReadinessRuleEngine ..> ProfileSnapshot
+ReadinessRuleEngine ..> ReadinessResult
+ReadinessResult "1" *-- "7" FactorResult
+ReadinessResult --> ReadinessCategory
+
+@enduml

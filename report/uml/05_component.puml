@@ -16,7 +16,7 @@ package "GradPath AI (Spring Boot application)" {
   [Security\n(SessionTokenFilter, CSRF,\nrole rules, BCrypt)] as Sec
   [Web Controllers\n+ ChartFactory + ViewHelper] as Web
   [Readiness Rule Engine\n(60 rules)] as Engine
-  [Placement Model\n(logistic regression,\ntrainer, metrics)] as ML
+  [Placement Model\n(decision tree selected from 3\ncandidates, trainer, metrics)] as ML
   [PlacementModelService\n(Facade)] as MLS
   [Domain Services\n(Auth, Student, Readiness, Recommendation,\nSkillGap, Job, Application, Resume,\nGoal, Message, Report, Activity)] as Services
   [Career Assistant\n(Strategy + Factory)] as Assistant

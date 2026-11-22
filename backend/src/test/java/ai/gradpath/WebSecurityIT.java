@@ -138,7 +138,9 @@ class WebSecurityIT extends IntegrationTestBase {
         mvc.perform(get("/officer/students/" + s.getId()).cookie(off)).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Model placement estimate")));
         mvc.perform(get("/model").cookie(off)).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Candidate model comparison")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Candidate model comparison")))
+                // every chart on the page must have data (a chart only valid for another model type must not render)
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("data-chart=\"null\""))));
     }
 
     @Test

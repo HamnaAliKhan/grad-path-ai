@@ -34,6 +34,14 @@ object "t2 : GoalTask" as t2 {
   title = "Learn REST API design"
   done = false
 }
+object "t3 : GoalTask" as t3 {
+  title = "Practise 30 data-structure problems"
+  done = false
+}
+object "t4 : GoalTask" as t4 {
+  title = "Prepare for technical interviews"
+  done = false
+}
 object "job1 : Job" as job {
   title = "Junior Java Developer"
   company = "NovaStack Labs (fictional)"
@@ -62,6 +70,8 @@ object "m1 : Message" as m1 {
 alex *-- goal
 goal *-- t1
 goal *-- t2
+goal *-- t3
+goal *-- t4
 alex -- app
 app -- job
 alex -- r1

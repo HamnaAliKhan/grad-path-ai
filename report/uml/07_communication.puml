@@ -5,7 +5,7 @@ skinparam object {
   BackgroundColor #F8FAFF
   BorderColor #6366F1
 }
-left to right direction
+
 
 object ":Student (actor)" as S
 object ":ReadinessController" as C

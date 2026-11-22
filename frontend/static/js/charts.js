@@ -23,6 +23,7 @@
   function render(el) {
     let spec;
     try { spec = JSON.parse(el.dataset.chart); } catch (e) { return; }
+    if (!spec || typeof spec !== 'object') { return; }   // no chart for this page state; never stop the other charts
     if (!window.Plotly) {
       el.innerHTML = '<div class="chart-fallback">Charts need an internet connection to load the Plotly library. The figures are also listed on this page.</div>';
       return;

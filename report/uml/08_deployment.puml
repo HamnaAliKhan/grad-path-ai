@@ -20,8 +20,8 @@ node "cdnjs.cloudflare.com / Google Fonts" as cdn {
   artifact "Inter font" as font
 }
 node "Neon (serverless PostgreSQL 18)" as neon {
-  database "main branch: neondb\n(users, students, jobs,\napplications, messages, ...)" as db
-  database "test branch\n(integration tests only,\nevery test rolled back)" as testdb
+  database "main database: neondb\n(users, students, jobs,\napplications, messages, ...)" as db
+  database "test database\n(integration tests only,\nevery test rolled back)" as testdb
 }
 node "AI provider (optional)\napi.groq.com" as groq
 

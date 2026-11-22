@@ -1,0 +1,68 @@
+@startuml 03d_class_assistant
+!pragma layout smetana
+title GradPath AI - Class Diagram: services and career assistant (Strategy, Factory, Facade, Observer)
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F8FAFF
+  BorderColor #6366F1
+}
+hide empty members
+
+package "service.assistant" {
+  interface AssistantStrategy {
+    + label() : String
+    + reply(history, ctx, userId) : AssistantReply
+  }
+  class RuleBasedAssistant
+  class LlmAssistant <<Facade>> {
+    - provider, apiKey, model
+    + reply(...) : AssistantReply
+  }
+  class AssistantFactory <<Factory>> {
+    + create() : AssistantStrategy
+  }
+  class PiiRedactor {
+    + redact(text, names) : String
+  }
+  class AssistantContext <<record>>
+  class CareerAssistantService
+}
+AssistantStrategy <|.. RuleBasedAssistant
+AssistantStrategy <|.. LlmAssistant
+LlmAssistant --> RuleBasedAssistant : fallback
+AssistantFactory ..> AssistantStrategy : creates
+CareerAssistantService --> AssistantFactory
+CareerAssistantService ..> PiiRedactor
+CareerAssistantService ..> AssistantContext
+package "readiness" {
+  class ReadinessRuleEngine <<Singleton bean>>
+}
+package "service" {
+  class ReadinessService <<Facade>> {
+    + evaluate(s : Student) : ReadinessResult
+    + record(s : Student) : ReadinessResult
+    + history(id) : List<ReadinessAssessment>
+  }
+  class ApplicationService {
+    + apply(...) : Result<JobApplication>
+    + computeFit(...) : Fit
+    + updateStatus(...)
+  }
+  class FitCalculator {
+    + fit(skill, resume, category) : int
+  }
+  class ActivityService <<Observer>> {
+    + record(user, action, detail)
+    + onActivity(e : ActivityEvent)
+  }
+  class ActivityEvent <<record>>
+  class UserFactory <<Factory>> {
+    + create(role, ...) : User
+  }
+}
+ReadinessService --> ReadinessRuleEngine : delegates
+ApplicationService --> ReadinessService
+ApplicationService ..> FitCalculator
+ApplicationService --> ActivityService : publishes
+ActivityService ..> ActivityEvent
+@enduml

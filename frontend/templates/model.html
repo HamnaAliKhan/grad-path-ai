@@ -53,7 +53,7 @@
     dashed line mean the percentages can be taken at face value.</div>
 
 <div class="section-title" th:if="${logisticModel}">What logistic regression learned</div>
-<div th:if="${logisticModel}" th:replace="~{fragments/ui :: chart(${coefChart}, 'Odds ratio for each feature')}"></div>
+<th:block th:if="${logisticModel}"><div th:replace="~{fragments/ui :: chart(${coefChart}, 'Odds ratio for each feature')}"></div></th:block>
 <div class="tablewrap" th:if="${logisticModel}">
     <table class="table">
         <tr><th>Feature</th><th>Model input</th><th>Training mean</th><th>Std. deviation</th><th>Weight (log-odds per SD)</th><th>Odds ratio per SD</th></tr>
@@ -70,7 +70,7 @@
     </table>
 </div>
 <div class="section-title" th:unless="${logisticModel}">Tree-model feature importance</div>
-<div th:if="${!logisticModel}" th:replace="~{fragments/ui :: chart(${importanceChart}, 'Feature importance')}"></div>
+<th:block th:unless="${logisticModel}"><div th:replace="~{fragments/ui :: chart(${importanceChart}, 'Feature importance')}"></div></th:block>
 <div class="tablewrap" th:unless="${logisticModel}">
     <table class="table">
         <tr><th>Feature</th><th>Model input</th><th>Training mean</th><th>Training range</th><th>Importance</th></tr>

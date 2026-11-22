@@ -25,8 +25,8 @@ student profiles and applications (ranked by an explainable job-fit score), mana
 
 The system is designed as an **educational decision-support tool**. Its readiness score is calculated by
 **60 documented, deterministic rules**, so every point can be explained to the student. Alongside it, a
-**logistic-regression placement model**, implemented and trained entirely in Java, gives a clearly labelled
-*secondary* estimate of the chance of placement with a per-feature explanation. The rule score stays the official
+**placement model** implemented and trained entirely in Java - a decision tree selected from three candidate
+classifiers and trained on a 10,000-student placement dataset - gives a clearly labelled *secondary* estimate of the chance of placement with a per-feature explanation. The rule score stays the official
 measure. Both are guidance only - not guarantees of placement, hiring decisions or measures of worth.
 
 ## 2. Objectives
@@ -43,9 +43,9 @@ measure. Both are guidance only - not guarantees of placement, hiring decisions 
 6. Store data securely in a hosted PostgreSQL database (Neon) with versioned migrations, and protect accounts with
    BCrypt passwords, revocable sessions, CSRF protection and role-based authorisation.
 7. Verify correctness with automated JUnit tests and document the design with eight kinds of UML diagram.
-8. Implement a data-driven placement model without external ML libraries: load a placement CSV, train an
-   L2-regularised logistic regression with cross-validation, evaluate it on held-out data (ROC-AUC, accuracy,
-   precision, recall, F1, calibration) and explain each individual estimate.
+8. Implement a data-driven placement model without external ML libraries: load a placement CSV, train and compare
+   three classifiers (logistic regression, decision tree, random forest) with cross-validation, evaluate the chosen one
+   on held-out data (ROC-AUC, accuracy, precision, recall, F1, calibration) and explain each individual estimate.
 
 ## 3. Problem Statement
 
@@ -130,24 +130,34 @@ duplicate applications and validation failures.
 
 ![Class diagram - domain](uml-png/03a_class_domain.png)
 
-**Rule engine, placement model, assistant and design patterns**
+**Readiness rule engine (Template Method)**
 
-![Class diagram - patterns](uml-png/03b_class_patterns.png)
+![Class diagram - rule engine](uml-png/03b_class_rule_engine.png)
+
+**Placement model**
+
+![Class diagram - placement model](uml-png/03c_class_placement_model.png)
+
+**Services and career assistant (Strategy, Factory, Facade, Observer)**
+
+![Class diagram - services and assistant](uml-png/03d_class_assistant.png)
 
 ### 4.7 Object diagram
 
 ![Object diagram](uml-png/04_object.png)
 
-A run-time snapshot of the fictional demo data: student *Alex Morgan* owns a goal with two tasks (25% progress), has
+A run-time snapshot of the fictional demo data: student *Alex Morgan* owns a goal with four tasks, one done (25% progress), has
 one readiness record (58, Developing) and one application to a demo listing with fit 86 = 0.55×100 + 0.25×75 + 0.20×60.
 
 ### 4.8 Component diagram
 
 ![Component diagram](uml-png/05_component.png)
 
-### 4.9 Sequence diagram - applying for a job
+### 4.9 Sequence diagrams - applying for a job
 
-![Sequence diagram](uml-png/06_sequence.png)
+![Sequence diagram part 1](uml-png/06a_sequence_apply.png)
+
+![Sequence diagram part 2](uml-png/06b_sequence_fit.png)
 
 ### 4.10 Communication diagram - viewing Placement Readiness
 
@@ -180,15 +190,15 @@ The `ai.gradpath.ml` package implements supervised learning in plain Java, with 
 
 | Step | Implementation |
 |---|---|
-| Data | `PlacementDataset.load()` reads a placement CSV (Kaggle-style column aliases, CGPA scale detected). Only five features are read - CGPA ratio, projects, internship (yes/no), communication, extracurricular - so sensitive columns such as IQ are ignored. |
+| Data | `data/kaggle/placement.csv` (10,000 students, CGPA on a 10-point scale, 16.6% placed), read by `PlacementDataset.load(csv, 10)`. Only five features are read - CGPA ratio, projects, internship (yes/no), communication, extracurricular - so sensitive columns such as IQ are ignored. |
 | Split | Stratified 80% training / 20% test with a fixed seed (`ModelTrainer`). |
-| Algorithm | `LogisticRegression`: L2-regularised logistic regression fitted with Newton's method (IRLS), solving a 6x6 system per step - deterministic and fast. |
-| Tuning | Stratified 5-fold cross-validation over penalties 0-1000; standardisation fitted inside each fold to avoid leakage; best mean ROC-AUC chosen. |
+| Candidates | `LogisticRegression` (L2, Newton/IRLS); `DecisionTreeClassifier` as one CART tree (Gini, depth up to 5, at least 20 students per leaf); a random forest of 24 bootstrap trees (depth up to 6). |
+| Selection | Stratified 5-fold cross-validation on the training rows; best mean ROC-AUC wins (a simpler candidate wins near-ties). The decision tree was selected. |
 | Threshold | The probability that maximises F1 on out-of-fold predictions. |
 | Evaluation | `ModelMetrics`: ROC-AUC (Mann-Whitney rank formula), accuracy, precision, recall, F1, Brier score, log loss, confusion matrix, ROC and calibration curves - on the untouched test rows. |
-| Storage | `ModelStore` writes `placement-model.json` (coefficients and metrics only). `PlacementModelService` loads it once and returns a `PlacementEstimate` with per-feature log-odds contributions. |
+| Storage | `ModelStore` writes `placement-model.json` (the selected model, all candidates' results and metrics; no student records). `PlacementModelService` loads it once and returns a `PlacementEstimate` with the effect of each input. |
 
-Training runs from the same jar: `java -jar gradpath-ai.jar train-model placement.csv`. Inputs outside the training
+Training runs from the same jar: `java -jar gradpath-ai.jar train-model data/kaggle/placement.csv --cgpa-scale 10`. Inputs outside the training
 range are clamped and flagged. The estimate appears on Placement Readiness, in the what-if simulator and on the
 officer's student review page, and an **About the Model** page shows the metrics and charts.
 
@@ -243,25 +253,21 @@ Screenshots to insert (take them from the running system):
 | CGPA 3.6, 4 projects, 2 internships, 6 skills, 2 certs, comm 8, extra 8 | 24 + 16 + 9 + 12 + 3 + 8 + 4 | 76 | Job Ready |
 | No internship, 14 months work experience | experience factor = 5 (rules 17 + 58) | - | - |
 
-**Placement model.** The bundled model was trained on 10,000 rows of *synthetic practice data* (seed 42), because
-the Kaggle CSV is not distributed with the code; the UI labels it "Practice model". Re-running `train-model` on a
-licensed `placement.csv` replaces these numbers with real-data results.
+**Placement model.** Three candidates were trained on `placement.csv` and compared by 5-fold cross-validation; the
+held-out test figures (2,001 students) were calculated only after the choice was made.
 
-| Measure | Value |
-|---|---|
-| Training / test rows | 7,999 / 2,001 (stratified) |
-| Cross-validated ROC-AUC (5 folds) | 0.779 ± 0.012 (chosen L2 penalty 1000; all penalties within 0.001) |
-| Test ROC-AUC | 0.797 |
-| Test accuracy / precision / recall / F1 | 0.717 / 0.697 / 0.906 / 0.788 (threshold 0.47) |
-| Test Brier score | 0.191 |
-| Odds ratio per standard deviation | CGPA 1.60, communication 1.36, internship 1.28, projects 1.28, extracurricular 1.11 |
+| Candidate | CV ROC-AUC | Test ROC-AUC | Accuracy | Precision | Recall | F1 |
+|---|---|---|---|---|---|---|
+| Logistic regression | 0.880 ± 0.006 | 0.868 | 0.853 | 0.558 | 0.551 | 0.555 |
+| **Decision tree (selected)** | **0.924 ± 0.006** | 0.916 | 0.919 | 1.000 | 0.509 | 0.675 |
+| Random forest (24 trees) | 0.921 ± 0.008 | 0.915 | 0.919 | 1.000 | 0.509 | 0.675 |
 
-All five effects are positive and CGPA has the largest, which matches the relationship built into the practice data
-and the weighting of the rule engine.
+The tree predicted 169 placements, all correct, and missed 163 placed students: it is cautious. CGPA carries 41% of
+its feature importance, communication 31% and projects 28%; internship did not improve any split in this dataset.
 
 ### 5.3 Test results
 
-`./mvnw test` - **190 tests, 0 failures, 0 errors**. The database tests run on a separate Neon test branch
+`./mvnw test` - **193 tests, 0 failures, 0 errors**. The database tests run on a separate Neon test database
 (`TEST_DATABASE_URL`), never on the live data, and each one is rolled back.
 
 | Test class | Focus |
@@ -287,15 +293,15 @@ Template Method pattern turning 60 business rules into seven small, testable cla
 Observer, Repository and Singleton keep the assistant, services and persistence flexible and loosely coupled.
 
 Keeping deterministic rules as the official score made every result explainable and fully testable: each tier
-boundary is covered by an automated test. The Java logistic-regression model complements it with a data-driven view,
-evaluated honestly on held-out data and explained feature by feature, without ever overriding the rules. Security and privacy were treated as design requirements (hashed passwords,
+boundary is covered by an automated test. The Java placement model complements it with a data-driven view: three classifiers compared
+by cross-validation, the winner evaluated honestly on held-out data and explained feature by feature, without ever overriding the rules. Security and privacy were treated as design requirements (hashed passwords,
 revocable sessions, CSRF, role and ownership checks, no sensitive data in scoring or exports).
 
 **Learning outcomes:** translating requirements into use cases and UML models; keeping the code and diagrams
 consistent; applying design patterns where they simplify change; designing a relational schema with safe, versioned
 migrations; and verifying behaviour with unit and integration tests.
 
-**Limitations and future work:** the bundled model is trained on synthetic practice data until a licensed real
-dataset is supplied, and it sees only five features; career requirements are illustrative, resume analysis is keyword-based, and the
+**Limitations and future work:** the placement model learns from one 10,000-student dataset, sees only five
+features and misses about half of the placed students in the test set; career requirements are illustrative, resume analysis is keyword-based, and the
 authentication is not a substitute for an institutional identity provider. Future work could add institution SSO,
 employer accounts, interview scheduling and accessibility auditing with real users.

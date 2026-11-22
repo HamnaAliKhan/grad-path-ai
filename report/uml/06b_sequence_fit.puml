@@ -1,0 +1,25 @@
+@startuml 06b_sequence_fit
+title GradPath AI - Sequence Diagram (part 2): computing the job fit of an application
+autonumber
+skinparam sequenceParticipant underline false
+
+participant "ApplicationService" as A
+participant "ResumeService" as R
+participant "SkillGapService" as G
+participant "ReadinessService" as RS
+participant "ReadinessRuleEngine" as E
+participant "FitCalculator" as FC
+
+A -> R : extractText(pdfBytes)
+R --> A : Result<text> (PDFBox, never executed)
+A -> G : matchJob(student, jobSkills)
+G --> A : skillMatch %
+A -> R : skillCoverage(text, jobSkills)
+R --> A : resumeMatch %
+A -> RS : evaluate(student)
+RS -> E : evaluate(ProfileSnapshot)
+E --> RS : ReadinessResult (score, category)
+RS --> A : result
+A -> FC : fit(skillMatch, resumeMatch, category)
+FC --> A : 0.55 x skill + 0.25 x resume + 0.20 x readiness points
+@enduml

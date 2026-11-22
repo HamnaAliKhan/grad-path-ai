@@ -1,0 +1,89 @@
+@startuml 03c_class_placement_model
+!pragma layout smetana
+title GradPath AI - Class Diagram: placement model (pure Java, three candidate classifiers)
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F8FAFF
+  BorderColor #6366F1
+}
+hide empty members
+
+package "ml" {
+  class PlacementFeatures <<record>> {
+    cgpaRatio; projects; internship
+    communication; extracurricular
+    + {static} of(p : ProfileSnapshot)
+  }
+  class PlacementDataset <<record>> {
+    rows; labels; source; synthetic
+    + {static} load(csv, cgpaScale)
+    + {static} synthetic(n, seed)
+  }
+  class ModelTrainer <<utility>> {
+    + {static} trainBest(data, seed) : PlacementModel
+    + {static} train(data, seed) : PlacementModel
+    ~ bestF1Threshold(p, y) : double
+  }
+  class LogisticRegression <<utility>> {
+    + {static} train(x, y, lambda) : Fit
+    + {static} sigmoid(t) : double
+  }
+  class DecisionTreeClassifier <<utility>> {
+    ~ {static} train(x, y, maxDepth, minLeaf,\n  maxFeatures, bootstrap, seed) : Fitted
+  }
+  class DecisionTreeModel <<record>> {
+    nodes : List<Node>
+    + probability(features) : double
+  }
+  class ModelCandidate <<record>> {
+    algorithm; name; trainAuc
+    cvAucMean; cvAucStd; threshold; selected
+  }
+  class ModelMetrics <<record>> {
+    accuracy; precision; recall; f1
+    rocAuc; brier; tp; fp; tn; fn
+    + {static} evaluate(p, y, threshold)
+  }
+  class PlacementModel <<record>> {
+    algorithm; threshold; synthetic
+    weights; bias; featureImportance
+    + probability(f) : double
+    + contributions(f) : List<Contribution>
+    + algorithmName() : String
+  }
+  class ModelStore {
+    + {static} read(file) : PlacementModel
+    + {static} write(model, file)
+  }
+  class TrainModelCommand {
+    + {static} main(args)
+  }
+}
+package "service" {
+  class PlacementModelService <<Facade, Singleton bean>> {
+    - model : PlacementModel
+    + isAvailable() : boolean
+    + estimate(s : Student) : Optional<PlacementEstimate>
+  }
+}
+package "readiness" {
+  class ProfileSnapshot <<record>>
+}
+
+TrainModelCommand ..> PlacementDataset : loads
+TrainModelCommand ..> ModelTrainer
+TrainModelCommand ..> ModelStore : saves
+ModelTrainer ..> LogisticRegression : candidate 1
+ModelTrainer ..> DecisionTreeClassifier : candidates 2 and 3\n(tree, random forest)
+DecisionTreeClassifier ..> DecisionTreeModel : builds
+ModelTrainer ..> ModelMetrics
+ModelTrainer ..> PlacementModel : creates
+PlacementModel "1" *-- "0..*" DecisionTreeModel : trees
+PlacementModel "1" *-- "3" ModelCandidate : comparisons
+PlacementModel "1" *-- "1" ModelMetrics : test
+ModelCandidate "1" *-- "1" ModelMetrics : test
+PlacementModel ..> PlacementFeatures
+PlacementFeatures ..> ProfileSnapshot
+PlacementModelService "1" o-- "0..1" PlacementModel
+PlacementModelService ..> ModelStore : loads at start-up
+@enduml
